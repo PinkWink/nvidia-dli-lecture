@@ -1,0 +1,43 @@
+# 강의 7: /scan_lidar (LaserScan) 과 /rgb (Image) 를 보는 RViz2 설정
+#   rviz2 -d ~/nvidia-dli-lecture/07_ros2/rviz/simple_robot.rviz
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 20
+    - Class: rviz_default_plugins/LaserScan
+      Name: LaserScan
+      Enabled: true
+      Topic:
+        Value: /scan_lidar
+        Reliability Policy: Best Effort
+      Size (m): 0.08
+      Style: Flat Squares
+      Color Transformer: FlatColor
+      Color: 239; 41; 41
+    - Class: rviz_default_plugins/Image
+      Name: Image
+      Enabled: true
+      Topic:
+        Value: /rgb
+        Reliability Policy: Best Effort
+  Global Options:
+    Fixed Frame: sim_lidar
+    Background Color: 48; 48; 48
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Scale: 60
+      X: 3
+      Y: 0
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+Window Geometry:
+  Width: 1400
+  Height: 850
