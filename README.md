@@ -23,15 +23,17 @@ cd ~/nvidia-dli-lecture
 
 새 강의의 코드는 `git pull` 로 받습니다.
 
-## 폴더
+## 강의별 명령 모음
 
-| 폴더 | 강의 | 내용 |
+영상에서 입력하는 터미널 명령은 강의마다 아래 문서에 순서대로 모아 두었습니다. 영상을 보면서 복사해 붙여 넣으세요.
+
+| 강의 | 명령 모음 | 코드 |
 |---|---|---|
-| `01_install/` | 1. Isaac Sim 5.1 설치 | `check_env.sh` PC 점검 · `install_isaacsim.sh` 내려받기와 설치 |
-| `02_launch/` | 2. Isaac Sim 실행과 화면 구성 | `hello_isaacsim.py` Python 으로 Isaac Sim 켜기 |
-| `03_first_scene/` | 3. 첫 장면: 큐브를 떨어뜨리며 배우는 물리 기초 | `falling_cube.py` 강체 · 충돌체 · 바닥을 코드로 |
+| 1. Isaac Sim 5.1 설치 | [01_install/README.md](01_install/README.md) | `check_env.sh` PC 점검 · `install_isaacsim.sh` 내려받기와 설치 |
+| 2. Isaac Sim 실행과 화면 구성 | [02_launch/README.md](02_launch/README.md) | `hello_isaacsim.py` Python 으로 Isaac Sim 켜기 |
+| 3. 첫 장면: 큐브를 떨어뜨리며 배우는 물리 기초 | [03_first_scene/README.md](03_first_scene/README.md) | `falling_cube.py` 강체 · 충돌체 · 바닥을 코드로 |
 
-## 실행
+## 한눈에 보기
 
 ```bash
 # 1. 내 PC 점검, Isaac Sim 설치
