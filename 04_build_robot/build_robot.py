@@ -3,13 +3,14 @@
     ~/isaacsim/python.sh 04_build_robot/build_robot.py                         # 뒷바퀴 50 °/s 로 4초 전진
     ~/isaacsim/python.sh 04_build_robot/build_robot.py --left 50 --right -50   # 제자리에서 돌기
     ~/isaacsim/python.sh 04_build_robot/build_robot.py --no-joints --seconds 1.5   # 관절 없음: 따로 떨어짐
+    ~/isaacsim/python.sh 04_build_robot/build_robot.py --left 50 --right -50 --round-wheels   # 완전히 둥근 바퀴와 비교
     ~/isaacsim/python.sh 04_build_robot/build_robot.py --gui                   # 창으로 보기
     ~/isaacsim/python.sh 04_build_robot/build_robot.py --save work/simple_robot.usd
 
 GUI 의 동작과 코드
     Create > Xform, 끌어서 자식으로 넣기          → UsdGeom.Xform / 경로를 /World/SimpleRobot/... 로
-    Create > Mesh > Cube · Cylinder              → UsdGeom.Cube · UsdGeom.Cylinder
-    Rigid Body with Colliders Preset             → UsdPhysics.RigidBodyAPI + CollisionAPI
+    Create > Mesh > Cube · Cylinder              → CreateMeshPrimWithDefaultXform 명령 (메뉴가 부르는 바로 그 명령)
+    Rigid Body with Colliders Preset             → UsdPhysics.RigidBodyAPI + CollisionAPI (Mesh 는 convexHull 근사)
     Create > Physics > Joint > Revolute Joint    → UsdPhysics.RevoluteJoint (Body 0 · Body 1 · Axis · Local Rotation)
     Add > Physics > Angular Drive                → UsdPhysics.DriveAPI (Damping · Target Velocity)
 """
@@ -24,6 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("--left", type=float, default=50.0, help="왼쪽 뒷바퀴 Target Velocity [°/s]")
     parser.add_argument("--right", type=float, default=50.0, help="오른쪽 뒷바퀴 Target Velocity [°/s]")
     parser.add_argument("--no-joints", action="store_true", help="관절을 만들지 않는다")
+    parser.add_argument("--round-wheels", action="store_true", help="바퀴를 Mesh 대신 완전히 둥근 원기둥(UsdGeom.Cylinder)으로 만든다")
     parser.add_argument("--seconds", type=float, default=4.0, help="시뮬레이션할 시간 [s]")
     parser.add_argument("--gui", action="store_true", help="창을 띄운다 (끝나도 닫을 때까지 유지)")
     parser.add_argument("--save", metavar="USD", help="Play 전 장면을 이 경로에 저장한다")
@@ -31,6 +33,7 @@ if __name__ == "__main__":
     app = SimulationApp({"headless": not args.gui})
 
 # 아래 import 는 SimulationApp 을 만든 뒤에만 할 수 있습니다.
+import omni.kit.commands
 from pxr import Gf, UsdGeom, UsdPhysics
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -57,35 +60,55 @@ def quat_x(degrees):
     return Gf.Quatf(q.GetReal(), Gf.Vec3f(*q.GetImaginary()))
 
 
+def add_mesh(stage, path, shape):
+    """Create > Mesh > Cube · Cylinder. 메뉴와 같은 명령이라 GUI 로 만든 것과 점 하나까지 같은 Mesh 가 생긴다.
+
+    Cylinder 는 완전한 원이 아니라 32각 기둥이다 (지름 1 m · 높이 1 m, 축 Z).
+    """
+    omni.kit.commands.execute("CreateMeshPrimWithDefaultXform", prim_type=shape, prim_path=path,
+                              select_new_prim=False, prepend_default_prim=False)
+    return stage.GetPrimAtPath(path)
+
+
 def make_rigid(prim):
     """Rigid Body with Colliders Preset."""
     UsdPhysics.RigidBodyAPI.Apply(prim)
     UsdPhysics.CollisionAPI.Apply(prim)
+    if prim.IsA(UsdGeom.Mesh):      # 움직이는 Mesh 의 충돌 모양: 점들을 감싸는 볼록 껍질
+        UsdPhysics.MeshCollisionAPI.Apply(prim).CreateApproximationAttr("convexHull")
 
 
-def build_robot(stage, joints=True):
-    """SimpleRobot 을 만든다. 돌려주는 값: {바퀴 이름: 관절 Prim}."""
+def build_robot(stage, joints=True, round_wheels=False):
+    """SimpleRobot 을 만든다. 돌려주는 값: {바퀴 이름: 관절 Prim}.
+
+    round_wheels=True 이면 바퀴를 32각 Mesh 대신 완전히 둥근 UsdGeom.Cylinder 로 만든다.
+    직진은 같지만 제자리 회전이 더 많이 돈다 (README 의 "바퀴 모양과 회전" 참고).
+    """
     # ── 로봇 전체를 묶는 Xform. 바퀴 반지름 0.375 m 보다 조금 위에 둔다 ──
     robot = UsdGeom.Xform.Define(stage, ROBOT)
     set_pose(robot.GetPrim(), translate=(0.0, 0.0, 0.4))
 
     # ── 몸체 ──────────────────────────────────────────────────────────
-    body = UsdGeom.Cube.Define(stage, BODY)
-    body.CreateSizeAttr(1.0)
-    body.CreateDisplayColorAttr([Gf.Vec3f(0.9, 0.7, 0.2)])
-    set_pose(body.GetPrim(), scale=BODY_SCALE)
-    make_rigid(body.GetPrim())
+    body = add_mesh(stage, BODY, "Cube")
+    UsdGeom.Gprim(body).CreateDisplayColorAttr([Gf.Vec3f(0.9, 0.7, 0.2)])
+    set_pose(body, scale=BODY_SCALE)
+    make_rigid(body)
 
     joint_prims = {}
     for name, position in WHEELS.items():
         # ── 바퀴: 원기둥을 X 로 90° 눕힌다 ───────────────────────────
-        wheel = UsdGeom.Cylinder.Define(stage, f"{ROBOT}/{name}_Wheel")
-        wheel.CreateRadiusAttr(0.5)
-        wheel.CreateHeightAttr(1.0)
-        wheel.CreateAxisAttr(UsdGeom.Tokens.z)
-        wheel.CreateDisplayColorAttr([Gf.Vec3f(0.15, 0.15, 0.17)])
-        set_pose(wheel.GetPrim(), translate=position, rotate_xyz=(90.0, 0.0, 0.0), scale=WHEEL_SCALE)
-        make_rigid(wheel.GetPrim())
+        path = f"{ROBOT}/{name}_Wheel"
+        if round_wheels:
+            cylinder = UsdGeom.Cylinder.Define(stage, path)
+            cylinder.CreateRadiusAttr(0.5)
+            cylinder.CreateHeightAttr(1.0)
+            cylinder.CreateAxisAttr(UsdGeom.Tokens.z)
+            wheel = cylinder.GetPrim()
+        else:
+            wheel = add_mesh(stage, path, "Cylinder")
+        UsdGeom.Gprim(wheel).CreateDisplayColorAttr([Gf.Vec3f(0.15, 0.15, 0.17)])
+        set_pose(wheel, translate=position, rotate_xyz=(90.0, 0.0, 0.0), scale=WHEEL_SCALE)
+        make_rigid(wheel)
         if not joints:
             continue
 
@@ -129,7 +152,7 @@ def print_pose(time, prim):
 
 if __name__ == "__main__":
     stage = new_scene()
-    joint_prims = build_robot(stage, joints=not args.no_joints)
+    joint_prims = build_robot(stage, joints=not args.no_joints, round_wheels=args.round_wheels)
     if joint_prims:
         set_wheel_speed(joint_prims, args.left, args.right)
     if args.save:

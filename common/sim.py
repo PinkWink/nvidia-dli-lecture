@@ -44,6 +44,9 @@ def set_pose(prim, translate=(0.0, 0.0, 0.0), rotate_xyz=(0.0, 0.0, 0.0), scale=
     """Property 창의 Transform 과 같은 세 값: Translate · Orient(각도) · Scale."""
     xform = UsdGeom.Xformable(prim)
     xform.ClearXformOpOrder()
+    for name in prim.GetPropertyNames():          # 메뉴 명령이 미리 넣어 둔 값이 있으면 지우고 새로 넣는다
+        if name.startswith("xformOp:"):
+            prim.RemoveProperty(name)
     xform.AddTranslateOp().Set(Gf.Vec3d(*translate))
     xform.AddRotateXYZOp().Set(Gf.Vec3f(*rotate_xyz))
     xform.AddScaleOp().Set(Gf.Vec3f(*scale))
