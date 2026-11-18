@@ -30,7 +30,7 @@ cd ~/nvidia-dli-lecture
 
 | 강의 | 명령 모음 | 코드 |
 |---|---|---|
-| 1. Isaac Sim 5.1 설치 | [01_install/README.md](01_install/README.md) | `check_env.sh` PC 점검 · `install_isaacsim.sh` 내려받기와 설치 |
+| 1. Isaac Sim 5.1 설치 | [01_install/README.md](01_install/README.md) | `check_env.sh` PC 점검 · `install_isaacsim.sh` 내려받기와 설치 · `verify_install.sh` 설치 확인 |
 | 2. Isaac Sim 실행과 화면 구성 | [02_launch/README.md](02_launch/README.md) | `hello_isaacsim.py` Python 으로 Isaac Sim 켜기 |
 | 3. 첫 장면: 큐브를 떨어뜨리며 배우는 물리 기초 | [03_first_scene/README.md](03_first_scene/README.md) | `falling_cube.py` 강체 · 충돌체 · 바닥을 코드로 |
 | 4. 로봇 만들기: 몸체 · 바퀴 · 회전 관절 · 구동 | [04_build_robot/README.md](04_build_robot/README.md) | `build_robot.py` 몸체 · 바퀴 · 관절 · 구동을 코드로 |

@@ -97,7 +97,7 @@ cd ~/isaacsim
 
 `VERSION` 이 `5.1.0` 으로 시작하면 맞습니다.
 
-## 5. 설치 확인
+## 5. 설치 위치 확인
 
 ```bash
 bash ~/nvidia-dli-lecture/01_install/check_env.sh
@@ -113,6 +113,30 @@ cd ~/isaacsim
 ```
 
 약 3분 걸립니다. 마지막 줄이 `System checking result: PASSED` 면 통과입니다. 함께 뜨는 창은 `CLOSE` 로 닫습니다.
+
+## 7. 설치 확인 (실제로 켜 보기)
+
+```bash
+cd ~/nvidia-dli-lecture
+git pull
+bash 01_install/verify_install.sh
+```
+
+```text
+1. 설치된 파일
+  [통과] isaac-sim.sh
+  [통과] python.sh
+  [통과] 버전 5.1.0
+  [통과] post_install.sh 실행됨
+2. 실제로 켜 보기 (창 없이, 처음에는 오래 걸릴 수 있습니다)
+  [통과] Isaac Sim 5.1.0 이 켜졌습니다
+  [통과] 물리 시뮬레이션: 큐브가 0.5초에 5.00 m → 3.56 m 로 떨어졌습니다
+  [통과] 정상 종료 (6초)
+
+결과: 설치가 정상입니다.
+```
+
+마지막 줄이 `결과: 설치가 정상입니다.` 면 끝입니다. `[실패]` 가 있으면 그 줄의 안내를 따릅니다.
 
 ## 막힐 때
 
