@@ -37,8 +37,11 @@ cd ~/nvidia-dli-lecture
 | 5. 로봇 조종: Articulation Root · Differential Controller · 키보드 | [05_control/README.md](05_control/README.md) | `drive_robot.py` 속도 명령 · 키보드 조종 그래프 |
 | 6. 센서 달기: 카메라 · 2D 라이다 | [06_sensors/README.md](06_sensors/README.md) | `add_sensors.py` 카메라 사진 · 라이다 거리 |
 | 7. ROS 2 로 데이터 보내기: LaserScan · 카메라 · RViz2 | [07_ros2/README.md](07_ros2/README.md) | `publish_ros2.py` 토픽 내보내기 · `rviz/simple_robot.rviz` |
+| 8. URDF 로봇 가져오기: carter.urdf 읽기 · URDF Importer | [08_urdf_import/README.md](08_urdf_import/README.md) | `import_carter.py` URDF 읽기 · 가져오기 |
+| 9. 가져온 로봇 몰기: 바닥 · 관절 · 차동 제어기 · 속도 제한 | [09_carter_drive/README.md](09_carter_drive/README.md) | `drive_carter.py` 바퀴 속도 · 속도 제한 · 키보드 |
+| 10. 가져온 로봇에 센서 달기 · 준비된 로봇 Nova Carter | [10_carter_sensors/README.md](10_carter_sensors/README.md) | `carter_sensors.py` 카메라 · 라이다 · `nova_carter.py` 센서 목록 |
 
-강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키웁니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
+강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키우고, 강의 8 ~ 10 은 URDF 로 가져온 Carter 를 같은 순서(가져오기 → 조종 → 센서)로 다룹니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
 
 ## 한눈에 보기
 
@@ -63,6 +66,13 @@ bash 01_install/install_isaacsim.sh
 # 7. ROS 2 (ROS 2 Jazzy 를 먼저 source)
 source /opt/ros/jazzy/setup.bash
 ~/isaacsim/python.sh 07_ros2/publish_ros2.py
+
+# 8 ~ 10. URDF 로봇(Carter) 가져오기 → 몰기 → 센서
+mkdir -p work && cp -r ~/isaacsim/exts/isaacsim.asset.importer.urdf/data/urdf/robots/carter work/
+~/isaacsim/python.sh 08_urdf_import/import_carter.py
+~/isaacsim/python.sh 09_carter_drive/drive_carter.py --keyboard
+~/isaacsim/python.sh 10_carter_sensors/carter_sensors.py
+~/isaacsim/python.sh 10_carter_sensors/nova_carter.py
 ```
 
 - Python 스크립트는 시스템의 `python3` 가 아니라 Isaac Sim 에 들어 있는 `~/isaacsim/python.sh` 로 실행합니다.
