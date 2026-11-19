@@ -218,6 +218,7 @@ ros2 run rqt_image_view rqt_image_view /unet/colored_segmentation_mask
 - 입력: `/image_rect`
 - 분할 결과: `/unet/colored_segmentation_mask`
 - 겹쳐 보기: `/segmentation_image_overlay`
+
 ### 처리 속도 (아무 컨테이너 터미널)
 
 ```bash
