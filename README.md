@@ -47,6 +47,7 @@ cd ~/nvidia-dli-lecture
 | 15. Pinky Pro 의 센서와 위치를 ROS 2 로 내보내기 · RViz2 | [15_pinky_ros2_topics/README.md](15_pinky_ros2_topics/README.md) | 강의 14 의 `pinky_ros2.py` · `rviz/pinky.rviz` |
 | 16. 핑크시티 만들기: Pinky Pro 가 다니는 작은 도시 | [16_pink_city/README.md](16_pink_city/README.md) | `pink_city.py` |
 | 17. 핑크시티 지도 만들기: slam_toolbox | [17_pinky_slam/README.md](17_pinky_slam/README.md) | `mapper_params.yaml` · `rviz/slam.rviz` · `drive_city.py` |
+| 18. 핑크시티 자율주행: AMCL · Nav2 | [18_pinky_nav2/README.md](18_pinky_nav2/README.md) | `nav2_params.yaml` · `rviz/nav2.rviz` |
 
 강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키우고, 강의 8 ~ 10 은 URDF 로 가져온 Carter 를 같은 순서(가져오기 → 조종 → 센서)로 다룹니다. 강의 11 ~ 13 은 핑크랩의 [Pinky Pro](https://github.com/pinklab-art/pinky_pro) 를 공식 저장소의 URDF 로 가져와 모터 · 센서 · 화면 · LED 까지 올립니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
 
