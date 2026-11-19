@@ -91,10 +91,10 @@ Articulation Root: /World/carter/chassis_link
 관절           USD 종류                 축   Body 0 → Body 1                      Stiffness   Damping
 com_joint    PhysicsFixedJoint      -   chassis_link → com_offset                    -         -
 imu_joint    PhysicsFixedJoint      -   chassis_link → imu                           -         -
-left_wheel   PhysicsRevoluteJoint   Y   chassis_link → left_wheel_link             0.0     625.0
+left_wheel   PhysicsRevoluteJoint   Y   chassis_link → left_wheel_link             0.0     307.9
 rear_pivot   PhysicsRevoluteJoint   Z   chassis_link → rear_pivot_link             0.0       0.0
 rear_axle    PhysicsRevoluteJoint   Y   rear_pivot_link → rear_wheel_link          0.0       0.0
-right_wheel  PhysicsRevoluteJoint   Y   chassis_link → right_wheel_link            0.0     625.0
+right_wheel  PhysicsRevoluteJoint   Y   chassis_link → right_wheel_link            0.0     307.9
    시간[s]     몸체 높이 z[m]
      0.0          0.300
      0.5          0.240
@@ -105,6 +105,8 @@ right_wheel  PhysicsRevoluteJoint   Y   chassis_link → right_wheel_link       
 ```
 
 이 표들 앞뒤로 `[Warning]` 등 로그가 함께 나옵니다. 정상입니다.
+
+바퀴 Damping 307.9 = Natural Frequency 25 의 제곱(625) × 관절이 돌리는 관성(0.493). 화면의 Property 에 보이는 값과 같습니다.
 
 ## 5. 바꿔 보기
 

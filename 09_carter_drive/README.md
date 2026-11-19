@@ -29,7 +29,7 @@ cd ~/isaacsim
 | 5 | `carter > joints > left_wheel` 클릭 | Axis `Y`, Damping 약 308 |
 | 6 | `rear_pivot` 클릭 | Axis `Z`, Damping 0 |
 | 7 | `left_wheel` 클릭, `Ctrl` + `right_wheel` 클릭 → Drive 의 Target Velocity | `20` |
-| 8 | ▶ Play 4초 | 앞으로 약 0.36 m |
+| 8 | ▶ Play 4초 | 앞으로 약 0.34 m |
 | 9 | Play 중에 `left_wheel` 만 Target Velocity | `0` → 왼쪽으로 돎 |
 | 10 | ■ Stop → 두 Target Velocity | `0` |
 
@@ -106,7 +106,7 @@ git pull
 | 옵션 | 결과 |
 |---|---|
 | `--wheels 20 20 --seconds 4` | 4초에 앞으로 0.33 m (계산: 20 °/s = 0.349 rad/s × 0.24 m × 4 s = 0.335 m) |
-| `--wheels 0 20 --seconds 4` | 4초에 왼쪽으로 22.0° |
+| `--wheels 0 20 --seconds 4` | 4초에 왼쪽으로 22.4° |
 
 ## 5. 속도 제한 비교
 
@@ -118,9 +118,9 @@ git pull
 
 | 옵션 | 바퀴 명령 | 결과 (3초) |
 |---|---|---|
-| `--linear 5 --no-limit` | 20.83 rad/s | (3.23, 1.16) m, 방향 −111.4° — 휘청이며 틀어짐 |
+| `--linear 5 --no-limit` | 20.83 rad/s | (3.27, 1.12) m, 방향 −110.6° — 휘청이며 틀어짐 |
 | `--linear 5` | 2.08 rad/s (0.5 m/s 로 제한) | (1.43, 0.00) m, 방향 +0.2° — 똑바로 |
-| `--linear 0 --angular 0.5` | ∓0.65 rad/s | 제자리에서 왼쪽으로 86.1° |
+| `--linear 0 --angular 0.5` | ∓0.65 rad/s | 제자리에서 왼쪽으로 86.4° |
 
 ## 6. 키보드로 조종하기
 

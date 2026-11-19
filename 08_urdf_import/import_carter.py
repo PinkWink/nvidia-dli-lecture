@@ -10,6 +10,7 @@ GUI 의 동작과 코드
     File > Import > carter.urdf                         → URDFParseFile 명령 (URDF 를 읽어 로봇 정보로)
     Links: Moveable Base                                → import_config.fix_base = False
     관절 표의 Target (Velocity / None)                  → robot.joints[이름].drive.set_target_type(...)
+    Joint Configuration: Natural Frequency · Force      → drive.set_drive_type(...) · compute_natural_stiffness(...)
     Import 버튼                                         → URDFImportRobot 명령
 """
 import argparse
@@ -115,14 +116,19 @@ def import_carter(stage, urdf_path, fixed_base=False, height=START_HEIGHT):
     config.make_default_prim = False              # 장면의 기본 Prim(/World)을 바꾸지 않는다
     config.create_physics_scene = False           # 물리 장면은 new_scene() 이 이미 만들었다
 
-    # URDF 를 읽어 로봇 정보로 만든 다음, 관절마다 Target 을 정한다 (Importer 창의 관절 표)
+    # URDF 를 읽어 로봇 정보로 만든 다음, 관절마다 구동 방식을 정한다 (Importer 창의 관절 표)
     _, robot = omni.kit.commands.execute("URDFParseFile", urdf_path=urdf_path, import_config=config)
+    interface = _urdf.acquire_urdf_interface()
     for name in robot.joints:
         drive = robot.joints[name].drive
         if name in WHEEL_JOINTS:
-            drive.set_target_type(_urdf.UrdfJointTargetType.JOINT_DRIVE_VELOCITY)    # 속도로 구동
+            drive.set_target_type(_urdf.UrdfJointTargetType.JOINT_DRIVE_VELOCITY)    # Target: Velocity (속도로 구동)
+            # 창의 기본값과 같게: Drive Type = Force, 세기는 Natural Frequency(25) 로 계산한다.
+            # Force 방식은 (진동수² = 625) × (관절이 돌리는 관성 0.493) = 약 308 이 된다.
+            drive.set_drive_type(_urdf.UrdfJointDriveType.JOINT_DRIVE_FORCE)
+            drive.strength = interface.compute_natural_stiffness(robot, name, drive.natural_frequency)
         else:
-            drive.set_target_type(_urdf.UrdfJointTargetType.JOINT_DRIVE_NONE)        # 모터 없음 (캐스터)
+            drive.set_target_type(_urdf.UrdfJointTargetType.JOINT_DRIVE_NONE)        # Target: None (모터 없음, 캐스터)
 
     _, path = omni.kit.commands.execute("URDFImportRobot", urdf_path=urdf_path, urdf_robot=robot, import_config=config)
     prim = stage.GetPrimAtPath(path)
