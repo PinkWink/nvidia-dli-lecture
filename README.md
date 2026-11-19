@@ -53,6 +53,7 @@ cd ~/nvidia-dli-lecture
 | 21. 카메라로 차선을 따라 달리기: 세그먼테이션 + 제어기 | [21_lane_follow/README.md](21_lane_follow/README.md) | `lane_follow.py` |
 | 22. 장소 이름으로 명령하기: 위치 추정 + 차선 추종 | [22_city_mission/README.md](22_city_mission/README.md) | `city_driver.py` · `rviz/city.rviz` |
 | 23. SIL · HIL 과 Script Editor: 코드로 장면 다루기 | [23_script_editor/README.md](23_script_editor/README.md) | `01_usd_api.py` · `02_core_api.py` · `03_drive_pinky.py` Script Editor 에 붙여 넣는 코드 |
+| 24. Isaac ROS 준비: 컨테이너에서 사람 분할 돌리기 | [24_isaac_ros/README.md](24_isaac_ros/README.md) | `download_assets.sh` 예제 자료 받기 |
 
 강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키우고, 강의 8 ~ 10 은 URDF 로 가져온 Carter 를 같은 순서(가져오기 → 조종 → 센서)로 다룹니다. 강의 11 ~ 13 은 핑크랩의 [Pinky Pro](https://github.com/pinklab-art/pinky_pro) 를 공식 저장소의 URDF 로 가져와 모터 · 센서 · 화면 · LED 까지 올립니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
 
