@@ -237,6 +237,8 @@ if __name__ == "__main__":
     parser.add_argument("--robot", action="store_true", help="Pinky Pro 를 올린다 (창에서는 W A S D 로 운전)")
     parser.add_argument("--ros2", action="store_true", help="Pinky Pro 를 ROS 2 에 연결한다 (/cmd_vel 받기, /scan · /odom · /tf 등 내보내기)")
     parser.add_argument("--seconds", type=float, help="--ros2 일 때 이 시간이 지나면 끝냄 (없으면 Ctrl+C 까지)")
+    parser.add_argument("--start", type=float, nargs=3, metavar=("X", "Y", "YAW"), help="로봇의 시작 위치 [m] 와 방향 [도] (기본: -1.05 -0.5 90)")
+    parser.add_argument("--hide-lidar", action="store_true", help="창에서 라이다 빔을 그리지 않는다 (빔이 로봇 카메라 영상에 찍히지 않게 — 강의 21)")
     parser.add_argument("--save", metavar="USD", help="만든 도시를 이 경로에 저장한다")
     parser.add_argument("--photo", metavar="DIR", default=OUT, help="사진을 저장할 폴더")
     args = parser.parse_args()
@@ -465,7 +467,7 @@ if __name__ == "__main__":
             sys.path.insert(0, os.path.join(REPO, folder))
         from import_pinky import DEFAULT_URDF, ROBOT, add_differential_controller, add_keyboard_control, find_urdf, import_pinky
         import_pinky(stage, find_urdf(DEFAULT_URDF), height=0.0)
-        x, y, yaw = ROBOT_START
+        x, y, yaw = args.start or ROBOT_START
         set_pose(stage.GetPrimAtPath(ROBOT), translate=(x, y, 0.0), rotate_xyz=(0.0, 0.0, yaw))
         if args.ros2:                              # 강의 14 · 15 의 그래프를 그대로 쓴다
             from isaacsim.core.utils.extensions import enable_extension
@@ -474,7 +476,7 @@ if __name__ == "__main__":
             app.update()
             from pinky_ros2 import add_cmd_vel_subscriber, add_sensor_publishers, add_state_publishers
             from pinky_sensors import add_camera, add_imu, add_lidar
-            add_lidar(stage, draw=args.gui)
+            add_lidar(stage, draw=args.gui and not args.hide_lidar)
             add_camera(stage)
             add_imu(stage)
             add_cmd_vel_subscriber()

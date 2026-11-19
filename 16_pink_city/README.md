@@ -73,6 +73,8 @@ source /opt/ros/jazzy/setup.bash
 | `--robot` | Pinky Pro 를 올린다 (키보드 운전) |
 | `--ros2` | Pinky Pro 를 올리고 ROS 2 에 연결한다 |
 | `--seconds N` | `--ros2` 로 창 없이 돌릴 때 N 초 뒤 끝냄 |
+| `--start X Y YAW` | 로봇의 시작 위치 [m] 와 방향 [도]. 기본 `-1.05 -0.5 90` (강의 21 에서 사용) |
+| `--hide-lidar` | 창에서 라이다 빔을 그리지 않는다 (강의 21 에서 사용) |
 | `--save 파일.usd` | 만든 장면을 저장한다 |
 | `--photo 폴더` | 사진을 저장할 폴더 (기본 `work/pink_city`) |
 
