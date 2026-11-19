@@ -81,6 +81,16 @@ python3 ~/nvidia-dli-lecture/21_lane_follow/lane_follow.py --ros-args -p speed:=
 | `gain` | 1.6 | 목표가 화면 끝에 있을 때의 회전 속도 [rad/s] |
 | `model` | `work/road_model/road_seg.onnx` | 강의 20 의 모델 |
 
+## 7. 한계 보기: 안쪽 차로로 돌면
+
+터미널 1 을 끄고 `--start` 없이 다시 켠 뒤, 터미널 3 의 노드를 다시 실행합니다.
+
+```bash
+~/isaacsim/python.sh 16_pink_city/pink_city.py --ros2 --gui --hide-lidar
+```
+
+이 방향으로는 오른쪽 차로가 안쪽이라 삼거리 입구가 오른쪽에 열려 있습니다. 강의 PC 에서는 삼거리에서 옆길로 들어간 뒤 사거리 앞에서 목표를 잃고, 28초 만에(0.84 m) 공원 모퉁이에서 멈췄습니다. 이 문제는 다음 강의에서 지도상 위치를 더해 풉니다.
+
 ## 강의 PC 의 결과
 
 | 항목 | 값 |
