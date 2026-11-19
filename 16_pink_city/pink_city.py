@@ -40,11 +40,15 @@ PINK = (236, 112, 170)
 DEEP_PINK = (214, 72, 140)
 LIGHT_PINK = (250, 214, 228)
 BLUE = (86, 110, 184)
-ASPHALT = (58, 60, 68)
-SIDEWALK = (226, 196, 210)
-WHITE = (245, 245, 245)
-YELLOW = (250, 204, 60)
-GREEN = (126, 190, 132)
+COLOR_ASPHALT = (58, 60, 68)
+COLOR_SIDEWALK = (226, 196, 210)
+COLOR_WHITE = (245, 245, 245)
+COLOR_YELLOW = (250, 204, 60)
+COLOR_GREEN = (126, 190, 132)
+
+# 정답 지도(강의 19)에 쓰는 종류 번호
+LABEL_OTHER, LABEL_SIDEWALK, LABEL_ROAD, LABEL_LANE, LABEL_CROSSWALK = 0, 1, 2, 3, 4
+LABEL_NAMES = ["그 밖 (건물 · 벽 · 하늘)", "보도 · 공원", "도로", "중앙선", "횡단보도 · 정지선"]
 
 
 # ---------------------------------------------------------------- 그림 만들기 (PIL)
@@ -65,11 +69,20 @@ def _logo():
     return None
 
 
-def make_floor(path):
-    """바닥 그림: 보도 · 도로 · 차선 · 횡단보도 · 공원 잔디 · 광장 글씨. 그림의 위쪽이 +Y, 오른쪽이 +X 입니다."""
+def make_floor(path, labels=False):
+    """바닥 그림: 보도 · 도로 · 차선 · 횡단보도 · 공원 잔디 · 광장 글씨. 그림의 위쪽이 +Y, 오른쪽이 +X 입니다.
+
+    labels=True 면 같은 모양을 색 대신 "종류 번호" 로 그린 정답 지도를 만든다 (강의 19 의 학습 데이터용).
+    """
     from PIL import Image, ImageDraw
     n = int(SIZE * PX_PER_M)
-    image = Image.new("RGB", (n, n), SIDEWALK)
+    if labels:        # 색 이름은 그대로 두고 값만 종류 번호로 바꾼다
+        SIDEWALK = TILE = GREEN = POND = LABEL_SIDEWALK
+        ASPHALT, YELLOW, WHITE = LABEL_ROAD, LABEL_LANE, LABEL_CROSSWALK
+    else:
+        SIDEWALK, ASPHALT, YELLOW, WHITE, GREEN = COLOR_SIDEWALK, COLOR_ASPHALT, COLOR_YELLOW, COLOR_WHITE, COLOR_GREEN
+        TILE, POND = (204, 170, 186), (150, 196, 230)
+    image = Image.new("L" if labels else "RGB", (n, n), SIDEWALK)
     draw = ImageDraw.Draw(image)
 
     def px(x, y):
@@ -82,8 +95,8 @@ def make_floor(path):
     # 보도 블록 무늬 (0.1 m 간격의 옅은 줄)
     for i in range(1, int(SIZE / 0.1)):
         t = i * 0.1 * PX_PER_M
-        draw.line([(t, 0), (t, n)], fill=(204, 170, 186), width=3)
-        draw.line([(0, t), (n, t)], fill=(204, 170, 186), width=3)
+        draw.line([(t, 0), (t, n)], fill=TILE, width=3)
+        draw.line([(0, t), (n, t)], fill=TILE, width=3)
 
     # 순환 도로: 둥근 사각형 고리 = 바깥 모양에서 안쪽 모양을 뺀 것
     outer, inner = RING + ROAD / 2, RING - ROAD / 2
@@ -91,15 +104,15 @@ def make_floor(path):
     rect(-inner, -inner, inner, inner, SIDEWALK, radius=max(RING_CORNER - ROAD / 2, 0.02))
     for i in range(1, int(2 * inner / 0.1)):          # 안쪽 보도 무늬를 다시 그린다
         t = -inner + i * 0.1
-        draw.line([px(t, -inner + 0.02), px(t, inner - 0.02)], fill=(204, 170, 186), width=3)
-        draw.line([px(-inner + 0.02, t), px(inner - 0.02, t)], fill=(204, 170, 186), width=3)
+        draw.line([px(t, -inner + 0.02), px(t, inner - 0.02)], fill=TILE, width=3)
+        draw.line([px(-inner + 0.02, t), px(inner - 0.02, t)], fill=TILE, width=3)
     # 십자 도로
     rect(-ROAD / 2, -inner - 0.01, ROAD / 2, inner + 0.01, ASPHALT)
     rect(-inner - 0.01, -ROAD / 2, inner + 0.01, ROAD / 2, ASPHALT)
 
     # 공원 (왼쪽 아래 블록) 잔디와 광장 (오른쪽 위 블록 앞)
     rect(-BLOCK_MAX + 0.05, -BLOCK_MAX + 0.05, -BLOCK_MIN - 0.05, -BLOCK_MIN - 0.05, GREEN, radius=0.06)
-    rect(-0.62, -0.62, -0.43, -0.43, (150, 196, 230), radius=0.09)          # 연못
+    rect(-0.62, -0.62, -0.43, -0.43, POND, radius=0.09)          # 연못
 
     # 차선: 가운데 노란 점선, 가장자리 흰 실선
     def dashes(x0, y0, x1, y1, color=YELLOW, dash=0.08, gap=0.06, width=0.012):
@@ -138,6 +151,9 @@ def make_floor(path):
         rect(-ROAD / 2 + 0.01, sign * 0.345, ROAD / 2 - 0.01, sign * 0.36, WHITE)
 
     # 바닥 글씨: 아래쪽 보도에 도시 이름 (위에서 볼 때 방향을 알 수 있다)
+    if labels:
+        image.save(path)
+        return
     font = _font(int(0.11 * PX_PER_M))
     text = "CITY OF PINK"
     box = draw.textbbox((0, 0), text, font=font)
@@ -146,7 +162,7 @@ def make_floor(path):
     image.save(path)
 
 
-def make_sign(path, text="CITY OF PINK", size=(1600, 400), background=WHITE, with_logo=True, color=(40, 40, 48)):
+def make_sign(path, text="CITY OF PINK", size=(1600, 400), background=COLOR_WHITE, with_logo=True, color=(40, 40, 48)):
     """간판: 핑크랩 로고 + 글씨."""
     from PIL import Image, ImageDraw
     image = Image.new("RGB", size, background)
@@ -171,7 +187,7 @@ def make_sign(path, text="CITY OF PINK", size=(1600, 400), background=WHITE, wit
 def make_logo_board(path, size=(800, 800)):
     """옥상 간판: 로고만."""
     from PIL import Image
-    image = Image.new("RGB", size, WHITE)
+    image = Image.new("RGB", size, COLOR_WHITE)
     logo = _logo()
     if logo is not None:
         logo.thumbnail((int(size[0] * 0.8), int(size[1] * 0.8)))
@@ -195,12 +211,13 @@ def make_windows(path, wall, glass=(70, 96, 150), columns=4, rows=4, size=512):
 
 def make_textures(out=OUT):
     os.makedirs(out, exist_ok=True)
-    files = {"floor": os.path.join(out, "floor.png"), "sign": os.path.join(out, "sign_city.png"),
+    files = {"floor": os.path.join(out, "floor.png"), "labels": os.path.join(out, "floor_labels.png"), "sign": os.path.join(out, "sign_city.png"),
              "sign_lab": os.path.join(out, "sign_pinklab.png"),
              "sign_hq": os.path.join(out, "sign_headquarters.png"), "sign_academy": os.path.join(out, "sign_academy.png"), "board": os.path.join(out, "logo_board.png"),
              "win_pink": os.path.join(out, "windows_pink.png"), "win_white": os.path.join(out, "windows_white.png"),
              "win_blue": os.path.join(out, "windows_blue.png")}
     make_floor(files["floor"])
+    make_floor(files["labels"], labels=True)
     make_sign(files["sign"], "CITY OF PINK")
     make_sign(files["sign_lab"], "PINKLAB")
     make_sign(files["sign_hq"], "PINKLAB", size=(1200, 400))
