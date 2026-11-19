@@ -13,6 +13,7 @@ Pinky Pro 의 URDF 는 공식 저장소 https://github.com/pinklab-art/pinky_pro
 GUI 의 동작과 코드
     File > Import > pinky.urdf · Moveable Base · Target      → URDFParseFile · URDFImportRobot 명령 (강의 8 과 같음)
     Tools > Robotics > OmniGraph Controllers > Differential Controller → og.Controller.edit(...) (강의 9 와 같음)
+    physicsScene 의 Solver Type = PGS                               → PhysxSceneAPI 의 solverType
 """
 import argparse
 import os
@@ -98,14 +99,24 @@ import omni.graph.core as og
 import omni.kit.commands
 import omni.usd
 from isaacsim.core.utils.extensions import enable_extension
-from pxr import UsdPhysics
+from pxr import PhysxSchema, UsdPhysics
 
 sys.path.insert(0, os.path.join(HERE, ".."))
 from common.sim import Sim, new_scene, pose_of, save_stage, set_pose, set_view
 
 
+def use_pgs_solver(stage, scene_path="/World/PhysicsScene"):
+    """물리 솔버를 PGS 로 바꾼다 (GUI: physicsScene 의 Solver Type).
+
+    기본 솔버(TGS)에서는 이 로봇이 깨어 있는 동안 뒤 캐스터가 저절로 조금씩 돌아, 서 있어도 1초에 0.26° 씩 방향이 틀어진다.
+    PGS 에서는 0 이다 (강의 PC 측정).
+    """
+    PhysxSchema.PhysxSceneAPI.Apply(stage.GetPrimAtPath(scene_path)).CreateSolverTypeAttr("PGS")
+
+
 def import_pinky(stage, urdf_path, height=START_HEIGHT):
     """URDF Importer 창에서 하는 일을 명령으로 한다 (강의 8 의 Carter 와 같은 순서)."""
+    use_pgs_solver(stage)
     enable_extension("isaacsim.asset.importer.urdf")
     from isaacsim.asset.importer.urdf import _urdf
 

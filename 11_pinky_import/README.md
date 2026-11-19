@@ -137,6 +137,7 @@ cd ~/isaacsim
 |---|---|---|
 | 9 | `Create > Environments > Flat Grid` | |
 | 10 | Stage 의 `Environment` 눈 아이콘 끄기 | |
+| 10-1 | `physicsScene` 선택 → Property 의 Solver Type | `PGS` |
 | 11 | `pinky` 선택 → Translate Z | `0.05` |
 | 12 | ▶ Play 2초 → ■ Stop | 수평으로 섬 (`base_link` 높이 0.028 m) |
 | 13 | `pinky > joints > l_wheel_joint` 클릭, `Ctrl` + `r_wheel_joint` 클릭 → Drive 의 Target Velocity | `360` |
@@ -157,6 +158,8 @@ cd ~/isaacsim
 | Right Joint Name | `l_wheel_joint` |
 | Left Joint Name | `r_wheel_joint` |
 | Use Keyboard Control (WASD) | 체크 |
+
+**Solver Type 을 PGS 로 바꾸는 이유**: 기본 솔버 TGS 에서는 이 로봇이 서 있는 동안에도 1초에 0.26° 씩 방향이 틀어집니다 (강의 PC 측정, PGS 에서는 0). 두 솔버의 차이는 강의 글 6절에 있습니다. 코드(`import_pinky.py`)는 자동으로 PGS 를 씁니다.
 
 **주의 (Isaac Sim 5.1)**: Right 칸에 `l_wheel_joint`, Left 칸에 `r_wheel_joint` 를 넣습니다. 칸 이름대로 넣으면 회전 방향이 반대가 됩니다 (강의 5 · 9 와 같은 문제).
 
@@ -189,14 +192,14 @@ caster_wheel_joint     Y        0.00     0.000
 l_wheel_joint          Y        0.00     0.443
 r_wheel_joint          Y        0.00     0.443
    시간[s]     x[m]     y[m]     z[m]    방향[°]
-     0.0    0.000    0.000    0.028      0.2
-     0.5    0.047    0.000    0.028      0.4
-     1.0    0.097    0.001    0.028      0.5
-     1.5    0.146    0.001    0.028      0.6
-     2.0    0.196    0.002    0.028      0.7
-     2.5    0.246    0.002    0.028      0.9
-     3.0    0.296    0.003    0.028      1.0
-결과: v = 0.1 m/s, ω = 0 rad/s 로 3초 → 이동 (0.296, 0.003) m, 회전 +0.8°.
+     0.0    0.000    0.000    0.028      0.0
+     0.5    0.041    0.000    0.028     -0.1
+     1.0    0.090    0.000    0.028     -0.1
+     1.5    0.140    0.000    0.028     -0.1
+     2.0    0.190    0.000    0.028     -0.1
+     2.5    0.240    0.000    0.028     -0.1
+     3.0    0.290   -0.001    0.028     -0.1
+결과: v = 0.1 m/s, ω = 0 rad/s 로 3초 → 이동 (0.290, -0.001) m, 회전 -0.1°.
 ```
 
 앞부분에는 2절의 URDF 표가 먼저 나옵니다.
@@ -212,10 +215,10 @@ r_wheel_joint          Y        0.00     0.443
 
 | 옵션 | 결과 |
 |---|---|
-| (없음) v = 0.1 m/s | 3초에 0.296 m |
-| `--wheels 360 360 --seconds 2` | 2초에 0.347 m (계산: 1초에 한 바퀴 = 2π × 0.028 m × 2 = 0.352 m) |
-| `--linear 0 --angular 1` | 3초에 왼쪽으로 168.2° (계산 171.9°) |
-| `--linear 1` | 0.2 m/s 로 제한되어 3초에 0.590 m |
+| (없음) v = 0.1 m/s | 3초에 0.290 m, 방향 변화 −0.1° |
+| `--wheels 360 360 --seconds 2` | 2초에 0.337 m (계산: 1초에 한 바퀴 = 2π × 0.028 m × 2 = 0.352 m) |
+| `--linear 0 --angular 1` | 3초에 왼쪽으로 166.3° (계산 171.9°) |
+| `--linear 1` | 0.2 m/s 로 제한되어 3초에 0.580 m |
 | `--keyboard` | 창을 띄우고 W A S D 로 조종 |
 
 ## 막힐 때
@@ -228,6 +231,7 @@ r_wheel_joint          Y        0.00     0.443
 | `source` 에서 오류 (zsh) | `setup.bash` 대신 `setup.zsh` |
 | 가져온 로봇이 너무 작게 보임 | 실제 크기가 손바닥만 합니다 (바퀴 지름 5.6 cm). Stage 에서 `pinky` 를 고르고 뷰포트에서 `F` 키 |
 | A 를 눌렀는데 오른쪽으로 돎 | 제어기 창의 Right · Left 칸을 서로 바꿔 넣었는지 확인 |
+| 서 있는데 방향이 조금씩 틀어짐 (1분에 약 16°) | `physicsScene` 의 Solver Type 이 기본값 TGS → `PGS` 로 (순서 10-1) |
 
 ## 옵션 전체
 

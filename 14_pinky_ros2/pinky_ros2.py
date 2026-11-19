@@ -42,7 +42,6 @@ if __name__ == "__main__":
 
 import omni.graph.core as og
 from isaacsim.core.utils.extensions import enable_extension
-from pxr import PhysxSchema
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
@@ -57,7 +56,6 @@ BASE = ROBOT + "/base_footprint"          # 로봇의 기준 링크 (바닥에 �
 DRIVE_GRAPH = "/Graphs/ros2_cmd_vel"
 STATE_GRAPH = "/Graphs/ros2_state"
 SENSOR_GRAPH = "/Graphs/ros2_sensors"
-PHYSICS_HZ = 240                          # 물리 계산을 1초에 240번 (기본 60). 작은 로봇이 서 있을 때 천천히 도는 오차를 줄인다
 LIDAR_FIELDS = ("azimuthRange", "depthRange", "horizontalFov", "horizontalResolution", "intensitiesData",
                 "linearDepthData", "numCols", "numRows", "rotationRate")
 
@@ -210,7 +208,6 @@ if __name__ == "__main__":
     app.update()
 
     stage = new_scene()
-    PhysxSchema.PhysxSceneAPI.Apply(stage.GetPrimAtPath("/World/PhysicsScene")).CreateTimeStepsPerSecondAttr(PHYSICS_HZ)
     import_pinky(stage, find_urdf(DEFAULT_URDF))
     add_lidar(stage, draw=args.gui)
     add_camera(stage)

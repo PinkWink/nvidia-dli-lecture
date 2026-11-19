@@ -24,12 +24,12 @@ cd ~/isaacsim
 
 ## 2. 화면에서 누르는 순서
 
-### 준비: 키보드 그래프 지우기 · 물리 주기
+### 준비: 키보드 그래프 지우기 · 솔버 확인
 
 | 순서 | 동작 | 값 |
 |---|---|---|
 | 1 | Stage 의 `Graphs > differential_controller` 우클릭 → `Delete` | 강의 11 의 키보드 그래프를 지움 |
-| 2 | `physicsScene` 선택 → Property 의 Time Steps Per Second | `240` |
+| 2 | `physicsScene` 선택 → Property 의 Solver Type 확인 | `PGS` (강의 11 에서 바꿈. TGS 면 서 있는 로봇이 조금씩 틀어짐) |
 
 ### 그래프 만들기
 
@@ -169,7 +169,7 @@ ros2 topic list -t
 /tf [tf2_msgs/msg/TFMessage]
 ```
 
-강의 PC 측정: `x: 0.1` 을 5초 보내면 약 0.4 m 전진, `z: 1.0` 을 3초 보내면 약 140° 회전 (명령이 도착하기까지의 지연 포함).
+강의 PC 측정: `x: 0.1` 을 5초 보내면 0.41 m 전진, `z: 1.0` 을 3초 보내면 176° 회전 (명령이 도착하기까지의 지연 포함). 명령이 없는 동안은 위치 · 방향이 그대로입니다.
 
 ## 5. 바꿔 보기
 
