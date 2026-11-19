@@ -43,7 +43,7 @@ cd ~/nvidia-dli-lecture
 | 11. 내 로봇 가져오기: Pinky Pro (URDF 만들기 · 가져오기 · 모터) | [11_pinky_import/README.md](11_pinky_import/README.md) | `prepare_pinky.sh` URDF 준비 · `import_pinky.py` 가져오기와 주행 |
 | 12. Pinky Pro 센서: 라이다 · 카메라 · 초음파 · IMU | [12_pinky_sensors/README.md](12_pinky_sensors/README.md) | `pinky_sensors.py` 네 센서의 값 |
 | 13. Pinky Pro 화면(LCD)과 LED 바 | [13_pinky_lcd_led/README.md](13_pinky_lcd_led/README.md) | `pinky_face_led.py` 표정 · LED 색 |
-| 14. Pinky Pro 를 ROS 2 로 움직이기: /cmd_vel 구독 · teleop | [14_pinky_ros2/README.md](14_pinky_ros2/README.md) | `pinky_ros2.py` /cmd_vel 받기 · 센서와 위치 내보내기 |
+| 14. Pinky Pro 를 ROS 2 로 움직이기: cmd_vel 구독 · teleop | [14_pinky_ros2/README.md](14_pinky_ros2/README.md) | `pinky_ros2.py` /cmd_vel 받기 · 센서와 위치 내보내기 |
 
 강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키우고, 강의 8 ~ 10 은 URDF 로 가져온 Carter 를 같은 순서(가져오기 → 조종 → 센서)로 다룹니다. 강의 11 ~ 13 은 핑크랩의 [Pinky Pro](https://github.com/pinklab-art/pinky_pro) 를 공식 저장소의 URDF 로 가져와 모터 · 센서 · 화면 · LED 까지 올립니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
 

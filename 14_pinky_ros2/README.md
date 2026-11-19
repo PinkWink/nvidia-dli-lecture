@@ -1,4 +1,4 @@
-# 14. Pinky Pro 를 ROS 2 로 움직이기: /cmd_vel 구독 · teleop — 명령 모음
+# 14. Pinky Pro 를 ROS 2 로 움직이기: cmd_vel 구독 · teleop — 명령 모음
 
 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. [13. Pinky Pro 화면과 LED](../13_pinky_lcd_led/README.md) 다음 내용입니다.
 
