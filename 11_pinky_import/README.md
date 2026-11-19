@@ -56,7 +56,7 @@ grep -c "<link" ~/nvidia-dli-lecture/work/pinky_description/urdf/pinky.urdf
 
 `18` 이 나오면 맞습니다 (링크 18개).
 
-⑤ 화면에 띄울 표정 그림 (강의 13 에서 사용)
+⑤ 화면에 띄울 표정 그림 (강의 13 에서 사용, GIF 마다 한 장면)
 
 ```bash
 ~/isaacsim/python.sh ~/nvidia-dli-lecture/11_pinky_import/make_faces.py src/pinky_pro/pinky_emotion/emotion ~/nvidia-dli-lecture/work/pinky_faces

@@ -1,6 +1,6 @@
-"""강의 12: Pinky Pro 에 라이다 · 카메라 · 초음파 센서를 달고 값을 읽습니다.
+"""강의 12: Pinky Pro 에 라이다 · 카메라 · 초음파 · IMU 센서를 달고 값을 읽습니다.
 
-    ~/isaacsim/python.sh 12_pinky_sensors/pinky_sensors.py                         # 세 센서의 값 출력 + 카메라 사진 저장
+    ~/isaacsim/python.sh 12_pinky_sensors/pinky_sensors.py                         # 센서 값 출력 + 카메라 사진 저장
     ~/isaacsim/python.sh 12_pinky_sensors/pinky_sensors.py --wall 0.5              # 앞 벽을 0.5 m 로 옮겨 초음파 값 확인
     ~/isaacsim/python.sh 12_pinky_sensors/pinky_sensors.py --no-obstacle-physics   # 장애물에 충돌체 없음: 라이다 · 초음파가 통과
     ~/isaacsim/python.sh 12_pinky_sensors/pinky_sensors.py --gui                   # 창으로 보기
@@ -10,6 +10,7 @@ URDF 에는 센서 자리(빈 링크)만 있습니다. 그 자리의 자식으�
     rplidar_link       → Create > Sensors > PhysX Lidar > Rotating    (RPLidar C1: 360°, 0.05 ~ 12 m)
     front_camera_link  → Create > Camera                               (가로 화각 66°)
     ultrasonic_link    → PhysX Lidar 를 좁은 부채꼴로 바꿔 초음파처럼 씀 (15°, 0.02 ~ 4 m)
+    imu_link           → Create > Sensors > Imu Sensor                 (가속도 · 각속도 · 자세)
 """
 import argparse
 import math
@@ -39,11 +40,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
 sys.path.insert(0, os.path.join(HERE, "..", "11_pinky_import"))
 from common.sim import Sim, new_scene, pose_of, save_stage, set_pose, set_view
-from import_pinky import BODY, DEFAULT_URDF, ROBOT, add_differential_controller, add_keyboard_control, find_urdf, import_pinky
+from import_pinky import (BODY, DEFAULT_URDF, ROBOT, add_differential_controller, add_keyboard_control, find_urdf, import_pinky,
+                          set_velocity)
 
 LIDAR_LINK = ROBOT + "/rplidar_mount/rplidar_link"            # URDF 의 빈 링크 = 센서 자리
 CAMERA_LINK = ROBOT + "/front_camera_mount/front_camera_link"
 ULTRASONIC_LINK = BODY + "/ultrasonic_link"
+IMU_LINK = BODY + "/imu_link"
+IMU = IMU_LINK + "/Imu_Sensor"
 LIDAR = LIDAR_LINK + "/Lidar"
 CAMERA = CAMERA_LINK + "/Camera"
 ULTRASONIC = ULTRASONIC_LINK + "/Ultrasonic"
@@ -80,6 +84,22 @@ def add_ultrasonic(stage, draw=False):
         vertical_fov=1.0, vertical_resolution=1.0, rotation_rate=0.0, high_lod=False, yaw_offset=0.0,
         draw_points=False, draw_lines=draw, enable_semantics=False)
     return stage.GetPrimAtPath(ULTRASONIC)
+
+
+def add_imu(stage):
+    """IMU: imu_link 의 자식. 이 자리가 겪는 가속도 · 각속도 · 자세를 잰다."""
+    enable_extension("isaacsim.sensors.physics")
+    omni.kit.commands.execute("IsaacSensorCreateImuSensor", path="/Imu_Sensor", parent=IMU_LINK)
+    return stage.GetPrimAtPath(IMU)
+
+
+def read_imu():
+    """IMU 값 한 번: (가속도 [m/s²], 각속도 [rad/s]). 센서 자기 좌표계 기준."""
+    from isaacsim.sensors.physics import _sensor
+    reading = _sensor.acquire_imu_sensor_interface().get_sensor_reading(IMU)
+    acc = (reading.lin_acc_x, reading.lin_acc_y, reading.lin_acc_z)
+    gyro = (reading.ang_vel_x, reading.ang_vel_y, reading.ang_vel_z)
+    return [round(float(v), 2) + 0.0 for v in acc], [round(float(v), 2) + 0.0 for v in gyro]
 
 
 def add_camera(stage):
@@ -187,6 +207,7 @@ if __name__ == "__main__":
     add_lidar(stage, draw=show)
     add_ultrasonic(stage, draw=show)
     add_camera(stage)
+    add_imu(stage)
     add_obstacles(stage, wall_distance=args.wall, physics=not args.no_obstacle_physics)
     if args.save:
         save_stage(stage, args.save)
@@ -210,6 +231,15 @@ if __name__ == "__main__":
         else:
             print(f"초음파: 빔 {sonar.size}개 모두 안 잡힘 (최대 {ULTRASONIC_RANGE[1]:g} m)", flush=True)
         print("카메라 사진 저장:", save_camera_image(app, args.image), flush=True)
+        acc, gyro = read_imu()
+        print("IMU (정지)       : 가속도 ({:.2f}, {:.2f}, {:.2f}) m/s², 각속도 ({:.2f}, {:.2f}, {:.2f}) rad/s".format(*acc, *gyro),
+              flush=True)
+        set_velocity(0.0, 1.0)                   # 제자리에서 왼쪽으로 1 rad/s
+        sim.run(1.0)
+        acc, gyro = read_imu()
+        print("IMU (1 rad/s 회전): 가속도 ({:.2f}, {:.2f}, {:.2f}) m/s², 각속도 ({:.2f}, {:.2f}, {:.2f}) rad/s".format(*acc, *gyro),
+              flush=True)
+        set_velocity(0.0, 0.0)
         if hit_count:
             print("결과: 라이다와 초음파가 장애물을 봅니다.", flush=True)
         else:

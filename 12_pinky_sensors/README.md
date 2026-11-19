@@ -1,4 +1,4 @@
-# 12. Pinky Pro 센서: 라이다 · 카메라 · 초음파 — 명령 모음
+# 12. Pinky Pro 센서: 라이다 · 카메라 · 초음파 · IMU — 명령 모음
 
 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. [11. 내 로봇 가져오기: Pinky Pro](../11_pinky_import/README.md) 다음 내용입니다.
 
@@ -62,7 +62,14 @@ cd ~/isaacsim
 | 21 | 검색 `rotation` → rotationRate | `0` |
 | 22 | 검색 `range` → minRange / maxRange | `0.02` / `4` |
 | 23 | 검색 `draw` → drawLines 체크 → 검색칸 비우기 | |
-| 24 | ▶ Play → ■ Stop → `Ctrl` + `S` | 앞 벽까지 부채꼴 선 |
+| 24 | ▶ Play → ■ Stop | 앞 벽까지 부채꼴 선 |
+
+### IMU
+
+| 순서 | 동작 | 값 |
+|---|---|---|
+| 25 | `pinky > base_link > imu_link` 클릭 → `Create > Sensors > Imu Sensor` | `imu_link/Imu_Sensor` 가 생김 |
+| 26 | `Ctrl` + `S` | 값은 3절의 코드로 확인 |
 
 ## 3. 같은 센서를 코드로
 
@@ -84,11 +91,14 @@ git pull
         Wall       0.0       1.03       1.02
 초음파: 빔 15개 중 가장 가까운 값 0.974 m (센서에서 벽까지 실제 0.974 m)
 카메라 사진 저장: /home/pw/nvidia-dli-lecture/work/pinky_camera.png
+IMU (정지)       : 가속도 (0.00, 0.00, 9.81) m/s², 각속도 (0.00, 0.00, 0.00) rad/s
+IMU (1 rad/s 회전): 가속도 (0.00, 0.00, 9.81) m/s², 각속도 (0.00, 0.00, 0.99) rad/s
 결과: 라이다와 초음파가 장애물을 봅니다.
 ```
 
 - 초음파 값은 부채꼴 빔 15개 중 가장 가까운 값입니다. 센서가 로봇 중심에서 0.026 m 앞에 있어 벽(1.0 m)까지 0.974 m 입니다.
 - 카메라 사진은 `work/pinky_camera.png` (1280 × 720) 로 저장됩니다.
+- IMU 는 서 있을 때와 1 rad/s 로 도는 중에 한 번씩 읽습니다. 가속도 z 9.81 은 중력입니다.
 
 ## 4. 바꿔 보기
 

@@ -7,7 +7,7 @@
 #   1. 공식 저장소 https://github.com/pinklab-art/pinky_pro 를 ~/pinky_pro/src 에 받는다
 #   2. pinky_description 패키지만 빌드한다 (xacro 가 패키지 위치를 찾을 수 있게)
 #   3. xacro 파일을 URDF 한 개로 바꿔 ~/nvidia-dli-lecture/work/pinky_description/urdf/pinky.urdf 로 저장한다
-#   4. 화면(LCD)에 띄울 표정 GIF 의 첫 장면을 PNG 로 저장한다 (work/pinky_faces/)
+#   4. 화면(LCD)에 띄울 표정 GIF 에서 한 장면씩 PNG 로 저장한다 (work/pinky_faces/)
 set -euo pipefail
 
 ISAACSIM_PATH="${ISAACSIM_PATH:-$HOME/isaacsim}"
@@ -38,7 +38,7 @@ cp -r "$REPO/pinky_description/." "$WORK/pinky_description/"     # 이미 가져
 xacro "$REPO/pinky_description/urdf/robot.urdf.xacro" > "$WORK/pinky_description/urdf/pinky.urdf"
 echo "  링크 $(grep -c '<link' "$WORK/pinky_description/urdf/pinky.urdf")개, 관절 $(grep -c '<joint' "$WORK/pinky_description/urdf/pinky.urdf")개"
 
-echo "[4/4] 표정 그림 (GIF 첫 장면 → PNG)"
+echo "[4/4] 표정 그림 (GIF 한 장면 → PNG)"
 "$ISAACSIM_PATH/python.sh" "$(dirname "${BASH_SOURCE[0]}")/make_faces.py" "$REPO/pinky_emotion/emotion" "$WORK/pinky_faces"
 
 echo
