@@ -16,11 +16,12 @@
 필요한 것: python3-opencv, python3-numpy (ROS 2 를 설치했다면 이미 있습니다). PyTorch 는 쓰지 않습니다.
 """
 import os
+import time
 
 import cv2
 import numpy as np
 import rclpy
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Point, Twist
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image
@@ -72,6 +73,9 @@ class LaneFollow(Node):
         self.speed = self.declare_parameter("speed", 0.15).value        # 직진 속도 [m/s]
         self.gain = self.declare_parameter("gain", 1.6).value           # 목표가 화면 끝에 있을 때의 회전 속도 [rad/s]
         model = self.declare_parameter("model", MODEL).value
+        # 강의 28: 앞의 Pinky Pro 가 이만큼 크게(상자 높이 / 화면 높이) 보이면 선다. 0 이면 쓰지 않는다
+        self.stop_for_pinky = self.declare_parameter("stop_for_pinky", 0.0).value
+        self.pinky = None                                 # 마지막으로 받은 /pinky/nearest 와 받은 시각
         if not os.path.exists(model):
             raise SystemExit(f"모델이 없습니다: {model}\n먼저 실행:  ~/isaacsim/python.sh 20_road_segmentation/train.py")
         self.net = cv2.dnn.readNetFromONNX(model)
@@ -81,8 +85,20 @@ class LaneFollow(Node):
         self.command = self.create_publisher(Twist, "/cmd_vel", 10)
         self.debug = self.create_publisher(Image, "/lane/debug", 1)
         self.create_subscription(Image, "/camera/image_raw", self.on_image, qos_profile_sensor_data)
+        if self.stop_for_pinky > 0.0:
+            self.create_subscription(Point, "/pinky/nearest", self.on_pinky, 2)
         self.create_timer(2.0, self.report)
         self.get_logger().info(f"모델 {os.path.basename(model)}, 속도 {self.speed} m/s, 게인 {self.gain}. /camera/image_raw 를 기다립니다.")
+
+    def on_pinky(self, message):
+        self.pinky = (message, time.monotonic())
+
+    def blocked(self):
+        """앞쪽(화면 가운데 근처)에 Pinky Pro 가 가까이 있는가. 0.5초 넘게 소식이 없으면 없는 것으로 본다."""
+        if self.pinky is None or time.monotonic() - self.pinky[1] > 0.5:
+            return False
+        nearest = self.pinky[0]
+        return nearest.z > 0.0 and abs(nearest.x) < 0.6 and nearest.y >= self.stop_for_pinky
 
     def on_image(self, message):
         if message.encoding not in ("rgb8", "bgr8"):
@@ -98,7 +114,9 @@ class LaneFollow(Node):
         else:
             self.lost += 1
         command = Twist()
-        if self.lost < 30:                                # 잠깐 놓친 동안은 마지막 방향대로 간다. 오래 놓치면 선다
+        if self.blocked():                                # 앞에 다른 로봇이 있으면 선다 (강의 28)
+            pass
+        elif self.lost < 30:                              # 잠깐 놓친 동안은 마지막 방향대로 간다. 오래 놓치면 선다
             command.angular.z = float(np.clip(-self.gain * self.error, -1.5, 1.5))     # 목표가 오른쪽(+)이면 오른쪽(−)으로 돈다
             command.linear.x = float(self.speed * max(0.35, 1.0 - abs(self.error)))   # 많이 틀어야 할수록 천천히
         self.command.publish(command)
@@ -129,7 +147,7 @@ class LaneFollow(Node):
 
     def report(self):
         if self.count:
-            state = "차선 추종" if self.lost < 30 else "도로를 놓쳐 정지"
+            state = "앞에 Pinky Pro 가 있어 정지" if self.blocked() else "차선 추종" if self.lost < 30 else "도로를 놓쳐 정지"
             self.get_logger().info(f"{state}: 영상 {self.count / 2.0:.0f} 장/초, 치우침 {self.error:+.2f}")
         self.count = 0
 

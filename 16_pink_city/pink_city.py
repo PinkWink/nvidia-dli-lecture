@@ -238,6 +238,8 @@ if __name__ == "__main__":
     parser.add_argument("--ros2", action="store_true", help="Pinky Pro 를 ROS 2 에 연결한다 (/cmd_vel 받기, /scan · /odom · /tf 등 내보내기)")
     parser.add_argument("--seconds", type=float, help="--ros2 일 때 이 시간이 지나면 끝냄 (없으면 Ctrl+C 까지)")
     parser.add_argument("--start", type=float, nargs=3, metavar=("X", "Y", "YAW"), help="로봇의 시작 위치 [m] 와 방향 [도] (기본: -1.05 -0.5 90)")
+    parser.add_argument("--parked", type=float, nargs=3, metavar=("X", "Y", "YAW"), action="append", default=[],
+                        help="이 자리에 서 있는 Pinky Pro 를 한 대 더 놓는다 (여러 번 쓸 수 있음 — 강의 28)")
     parser.add_argument("--hide-lidar", action="store_true", help="창에서 라이다 빔을 그리지 않는다 (빔이 로봇 카메라 영상에 찍히지 않게 — 강의 21)")
     parser.add_argument("--save", metavar="USD", help="만든 도시를 이 경로에 저장한다")
     parser.add_argument("--photo", metavar="DIR", default=OUT, help="사진을 저장할 폴더")
@@ -421,6 +423,24 @@ def add_city(stage, textures):
     light.CreateAngleAttr(1.5)
 
 
+def add_parked_robot(stage, source, index, x, y, yaw):
+    """서 있는 Pinky Pro 한 대: 로봇을 복사한 뒤 관절과 강체 설정을 지워 "움직이지 않는 물체" 로 만든다.
+
+    충돌체는 남기므로 라이다에 보이고 부딪힌다. 센서와 ROS 2 그래프를 달기 전에 복사해야 깨끗한 사본이 된다.
+    """
+    from pxr import PhysxSchema, Usd
+    path = f"/World/parked_{index}"
+    omni.kit.commands.execute("CopyPrim", path_from=source, path_to=path, exclusive_select=False)
+    stage.RemovePrim(path + "/joints")
+    for prim in Usd.PrimRange(stage.GetPrimAtPath(path)):
+        for api in (UsdPhysics.ArticulationRootAPI, UsdPhysics.RigidBodyAPI, UsdPhysics.MassAPI,
+                    PhysxSchema.PhysxArticulationAPI, PhysxSchema.PhysxRigidBodyAPI):
+            if prim.HasAPI(api):
+                prim.RemoveAPI(api)
+    set_pose(stage.GetPrimAtPath(path), translate=(x, y, 0.0), rotate_xyz=(0.0, 0.0, yaw))
+    return stage.GetPrimAtPath(path)
+
+
 def save_photos(app, stage, folder):
     """도시를 여러 방향에서 찍어 PNG 로 저장한다. 저장한 파일 목록을 돌려준다."""
     import omni.replicator.core as rep
@@ -467,6 +487,9 @@ if __name__ == "__main__":
             sys.path.insert(0, os.path.join(REPO, folder))
         from import_pinky import DEFAULT_URDF, ROBOT, add_differential_controller, add_keyboard_control, find_urdf, import_pinky
         import_pinky(stage, find_urdf(DEFAULT_URDF), height=0.0)
+        for k, (px, py, pyaw) in enumerate(args.parked):
+            add_parked_robot(stage, ROBOT, k, px, py, pyaw)
+            print(f"서 있는 Pinky Pro {k}: ({px}, {py}) 방향 {pyaw}°", flush=True)
         x, y, yaw = args.start or ROBOT_START
         set_pose(stage.GetPrimAtPath(ROBOT), translate=(x, y, 0.0), rotate_xyz=(0.0, 0.0, yaw))
         if args.ros2:                              # 강의 14 · 15 의 그래프를 그대로 쓴다
