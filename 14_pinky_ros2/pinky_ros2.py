@@ -50,7 +50,7 @@ sys.path.insert(0, os.path.join(HERE, "..", "12_pinky_sensors"))
 from common.sim import Sim, new_scene, pose_of, save_stage, set_view
 from import_pinky import (BODY, DEFAULT_URDF, MAX_ANGULAR, MAX_LINEAR, ROBOT, WHEEL_DISTANCE, WHEEL_JOINTS, WHEEL_RADIUS, find_urdf,
                           import_pinky)
-from pinky_sensors import (CAMERA, CAMERA_LINK, IMU, IMU_LINK, LIDAR, LIDAR_LINK, add_camera, add_imu, add_lidar, add_obstacles)
+from pinky_sensors import CAMERA, IMU, LIDAR, add_camera, add_imu, add_lidar, add_obstacles
 
 BASE = ROBOT + "/base_footprint"          # 로봇의 기준 링크 (바닥에 닿는 점). Articulation Root 가 여기 있다
 DRIVE_GRAPH = "/Graphs/ros2_cmd_vel"
@@ -103,7 +103,10 @@ def add_cmd_vel_subscriber():
 
 
 def add_state_publishers():
-    """로봇의 상태 내보내기: /clock · /odom · /tf (odom → base_footprint → 각 링크) · /joint_states."""
+    """로봇의 상태 내보내기: /clock · /odom · /tf (odom → base_footprint) · /joint_states.
+
+    base_footprint 아래 링크들의 tf 는 ROS 2 의 robot_state_publisher 가 URDF 와 /joint_states 로 계산한다 (실물 로봇과 같은 구성).
+    """
     keys = og.Controller.Keys
     og.Controller.edit(
         {"graph_path": STATE_GRAPH, "evaluator_name": "execution"},
@@ -116,7 +119,6 @@ def add_state_publishers():
                 ("ComputeOdometry", "isaacsim.core.nodes.IsaacComputeOdometry"),     # 출발점에서 본 위치 · 속도
                 ("PublishOdometry", "isaacsim.ros2.bridge.ROS2PublishOdometry"),
                 ("PublishOdomTF", "isaacsim.ros2.bridge.ROS2PublishRawTransformTree"),   # tf: odom → base_footprint
-                ("PublishLinkTF", "isaacsim.ros2.bridge.ROS2PublishTransformTree"),      # tf: base_footprint → 링크 · 센서 자리
                 ("PublishJointState", "isaacsim.ros2.bridge.ROS2PublishJointState"),
             ],
             keys.SET_VALUES: [
@@ -126,15 +128,12 @@ def add_state_publishers():
                 ("PublishOdometry.inputs:chassisFrameId", "base_footprint"),
                 ("PublishOdomTF.inputs:parentFrameId", "odom"),
                 ("PublishOdomTF.inputs:childFrameId", "base_footprint"),
-                ("PublishLinkTF.inputs:parentPrim", BASE),
-                ("PublishLinkTF.inputs:targetPrims", [ROBOT, LIDAR_LINK, CAMERA_LINK, IMU_LINK]),
                 ("PublishJointState.inputs:targetPrim", BASE),               # Articulation Root 가 있는 Prim
                 ("PublishJointState.inputs:topicName", "joint_states"),
             ],
             keys.CONNECT: [
                 ("OnPlaybackTick.outputs:tick", "PublishClock.inputs:execIn"),
                 ("OnPlaybackTick.outputs:tick", "ComputeOdometry.inputs:execIn"),
-                ("OnPlaybackTick.outputs:tick", "PublishLinkTF.inputs:execIn"),
                 ("OnPlaybackTick.outputs:tick", "PublishJointState.inputs:execIn"),
                 ("ComputeOdometry.outputs:execOut", "PublishOdometry.inputs:execIn"),
                 ("ComputeOdometry.outputs:execOut", "PublishOdomTF.inputs:execIn"),
@@ -145,9 +144,9 @@ def add_state_publishers():
                 ("ComputeOdometry.outputs:position", "PublishOdomTF.inputs:translation"),
                 ("ComputeOdometry.outputs:orientation", "PublishOdomTF.inputs:rotation"),
             ] + [("Context.outputs:context", f"{node}.inputs:context")
-                 for node in ("PublishClock", "PublishOdometry", "PublishOdomTF", "PublishLinkTF", "PublishJointState")]
+                 for node in ("PublishClock", "PublishOdometry", "PublishOdomTF", "PublishJointState")]
               + [("SimTime.outputs:simulationTime", f"{node}.inputs:timeStamp")
-                 for node in ("PublishClock", "PublishOdometry", "PublishOdomTF", "PublishLinkTF", "PublishJointState")],
+                 for node in ("PublishClock", "PublishOdometry", "PublishOdomTF", "PublishJointState")],
         },
     )
 
@@ -208,7 +207,7 @@ if __name__ == "__main__":
     app.update()
 
     stage = new_scene()
-    import_pinky(stage, find_urdf(DEFAULT_URDF))
+    import_pinky(stage, find_urdf(DEFAULT_URDF), height=0.0)   # 바닥에 닿은 채로 시작: /odom 의 기준점(시작 위치)이 바닥 높이가 된다
     add_lidar(stage, draw=args.gui)
     add_camera(stage)
     add_imu(stage)
