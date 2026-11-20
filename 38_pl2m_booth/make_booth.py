@@ -37,6 +37,9 @@ CUPS = [("cup_pink", (7.50, -1.72, 0.795), (0.87, 0.42, 0.65)),       # 음료�
         ("cup_blue", (7.65, -1.72, 0.795), (0.28, 0.39, 0.68)),
         ("cup_yellow", (7.80, -1.72, 0.795), (0.95, 0.77, 0.23))]
 CUP_SIZE, CUP_MASS = (0.05, 0.09), 0.1                                # 지름 · 높이 [m], 질량 [kg]
+GLOSSY = {"col_e9e8ea": 0.25}                                         # 부스 바닥판: 조명이 비치게 매끈하게 (재질 이름: 거칠기)
+PINK, WARM, COOL = (0.87, 0.42, 0.65), (1.0, 0.93, 0.82), (0.72, 0.80, 1.0)      # 핑크랩 분홍 · 전구색 · 차가운 흰색
+LAMP, KEY, WASH, LED, DOWN = 45000.0, 170000.0, 12000.0, 2500.0, 15000.0                # 조명 밝기: 등기구 · 위의 큰 조명 · 분홍빛 · LED 줄 · 안쪽 조명
 ROBOT_VIEWS = [("robot", (2.9, -4.5, 2.7), (5.4, -3.15, 0.45)),         # 이름, 카메라 위치, 바라보는 점
                ("cups", (7.2, -2.75, 1.35), (7.65, -1.7, 0.78))]
 
@@ -79,6 +82,7 @@ if __name__ == "__main__":
     parser.add_argument("--robot", action="store_true", help="PL-2M 과 컵 3개를 올리고 5초 동안 지켜본다")
     parser.add_argument("--gui", action="store_true", help="창을 띄운다")
     parser.add_argument("--save", metavar="USD", default=os.path.join(OUT, "booth.usd"), help="만든 장면을 저장할 경로")
+    parser.add_argument("--plain", action="store_true", help="전시장 조명 없이 기본 조명(강의 3)만 쓴다")
     parser.add_argument("--no-photo", action="store_true", help="사진을 찍지 않는다")
     parser.add_argument("--seconds", type=float, default=5.0, help="--robot 일 때 지켜보는 시간 [s]")
     args = parser.parse_args()
@@ -94,7 +98,7 @@ if __name__ == "__main__":
 import numpy as np
 import omni.kit.commands
 import omni.usd
-from pxr import Gf, Sdf, UsdGeom, UsdPhysics, UsdShade
+from pxr import Gf, Sdf, UsdGeom, UsdLux, UsdPhysics, UsdShade
 
 sys.path.insert(0, REPO)
 from common.sim import Sim, new_scene, pose_of, save_stage, set_pose, set_view
@@ -142,8 +146,8 @@ def color_value(rgb):
     return Gf.Vec3f(*[float(c) ** 2.2 for c in rgb])              # 화면의 색(sRGB) → 렌더러가 쓰는 값
 
 
-def make_material(stage, name, color=None, texture=None, glow=0.0):
-    """OmniPBR 재질 (강의 13 · 16 과 같은 방법). texture 가 있으면 그림을 입히고, glow 가 있으면 스스로 빛난다 (모니터)."""
+def make_material(stage, name, color=None, texture=None, glow=0.0, roughness=0.7):
+    """OmniPBR 재질 (강의 13 · 16 과 같은 방법). texture 가 있으면 그림을 입히고, glow 가 있으면 스스로 빛난다 (모니터 · LED)."""
     path = f"{LOOKS}/{name}"
     omni.kit.commands.execute("CreateMdlMaterialPrim", mtl_url="OmniPBR.mdl", mtl_name="OmniPBR", mtl_path=path)
     shader = UsdShade.Shader(stage.GetPrimAtPath(path + "/Shader"))
@@ -151,11 +155,12 @@ def make_material(stage, name, color=None, texture=None, glow=0.0):
         shader.CreateInput("diffuse_color_constant", Sdf.ValueTypeNames.Color3f).Set(color_value(color))
     if texture is not None:
         shader.CreateInput("diffuse_texture", Sdf.ValueTypeNames.Asset).Set(texture)
-    shader.CreateInput("reflection_roughness_constant", Sdf.ValueTypeNames.Float).Set(0.7)
-    if glow > 0.0 and texture is not None:
+    shader.CreateInput("reflection_roughness_constant", Sdf.ValueTypeNames.Float).Set(roughness)
+    if glow > 0.0:
         shader.CreateInput("enable_emission", Sdf.ValueTypeNames.Bool).Set(True)
-        shader.CreateInput("emissive_color", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(1.0))
-        shader.CreateInput("emissive_color_texture", Sdf.ValueTypeNames.Asset).Set(texture)
+        shader.CreateInput("emissive_color", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(1.0) if texture else color_value(color))
+        if texture is not None:
+            shader.CreateInput("emissive_color_texture", Sdf.ValueTypeNames.Asset).Set(texture)
         shader.CreateInput("emissive_intensity", Sdf.ValueTypeNames.Float).Set(float(glow) * 1000.0)
     return UsdShade.Material(stage.GetPrimAtPath(path))
 
@@ -171,7 +176,8 @@ def add_materials(stage, mjcf):
             looks[name] = make_material(stage, name, texture=texture, glow=float(item.get("emission", 0)))
         else:
             rgba = numbers(item.get("rgba", "0.5 0.5 0.5 1"))
-            looks[name] = make_material(stage, name, color=rgba[:3])
+            looks[name] = make_material(stage, name, color=rgba[:3], glow=float(item.get("emission", 0)) * 5,
+                                        roughness=GLOSSY.get(name, 0.7))
     return looks
 
 
@@ -293,6 +299,97 @@ def add_booth(stage, mjcf):
     return cameras
 
 
+def add_spot(stage, path, position, aim, intensity, color=WARM, cone=50.0, radius=0.04):
+    """한쪽으로만 비추는 조명 (스포트라이트): Sphere Light + Shaping 의 Cone. aim = 비추는 방향."""
+    light = UsdLux.SphereLight.Define(stage, path)
+    light.CreateRadiusAttr(radius)
+    light.CreateNormalizeAttr(True)                 # 밝기가 조명의 크기에 따라 달라지지 않게
+    light.CreateIntensityAttr(intensity)
+    light.CreateColorAttr(Gf.Vec3f(*color))
+    shaping = UsdLux.ShapingAPI.Apply(light.GetPrim())
+    shaping.CreateShapingConeAngleAttr(cone)
+    shaping.CreateShapingConeSoftnessAttr(0.4)
+    place(light.GetPrim(), position, rotation_to(-np.array(aim, dtype=float)))       # 조명은 자기 −Z 쪽을 비춘다
+    return light
+
+
+def add_tube(stage, name, start, end, intensity, color=PINK, radius=0.012):
+    """LED 줄: 두 점 사이에 빛나는 가는 기둥(눈에 보이는 것) + Cylinder Light(주변을 비추는 것)."""
+    start, end = np.array(start, dtype=float), np.array(end, dtype=float)
+    length, center = float(np.linalg.norm(end - start)), (start + end) / 2
+    along_x = rotation_to(end - start) @ np.array([[0, 0, -1], [0, 1, 0], [1, 0, 0]])     # 자기 X 축이 두 점을 잇게
+    light = UsdLux.CylinderLight.Define(stage, f"{BOOTH}/Lights/{name}")
+    light.CreateLengthAttr(length)
+    light.CreateRadiusAttr(radius)
+    light.CreateNormalizeAttr(True)
+    light.CreateIntensityAttr(intensity)
+    light.CreateColorAttr(Gf.Vec3f(*color))
+    place(light.GetPrim(), center, along_x)
+    tube = UsdGeom.Cylinder.Define(stage, f"{BOOTH}/Leds/{name}")
+    tube.CreateAxisAttr("Z")
+    tube.CreateRadiusAttr(radius)
+    tube.CreateHeightAttr(length)
+    place(tube.GetPrim(), center, rotation_to(end - start))
+    UsdShade.MaterialBindingAPI.Apply(tube.GetPrim()).Bind(UsdShade.Material(stage.GetPrimAtPath(f"{LOOKS}/led_{'pink' if color == PINK else 'white'}")))
+
+
+def add_ribbon(stage, name, points, drop=0.035):
+    """구불구불한 간판의 아래 모서리를 따라가는 빛나는 띠 (점들을 잇는 네모들)."""
+    mesh = UsdGeom.Mesh.Define(stage, f"{BOOTH}/Leds/{name}")
+    vertices, counts, indices = [], [], []
+    for x, y, z in points:
+        vertices += [(float(x), float(y), float(z)), (float(x), float(y), float(z) - drop)]
+    for i in range(len(points) - 1):
+        counts.append(4)
+        indices += [2 * i, 2 * i + 2, 2 * i + 3, 2 * i + 1]
+    mesh.CreatePointsAttr(vertices)
+    mesh.CreateFaceVertexCountsAttr(counts)
+    mesh.CreateFaceVertexIndicesAttr(indices)
+    mesh.CreateDoubleSidedAttr(True)
+    mesh.CreateSubdivisionSchemeAttr("none")
+    UsdShade.MaterialBindingAPI.Apply(mesh.GetPrim()).Bind(UsdShade.Material(stage.GetPrimAtPath(f"{LOOKS}/led_white")))
+
+
+def add_lights(stage, mjcf):
+    """전시장 조명: 어두운 홀 + 부스의 등기구 12개 + 위에서 비추는 큰 조명 + LED 줄. 만든 조명의 수를 돌려준다."""
+    UsdLux.DistantLight(stage.GetPrimAtPath("/World/Light")).GetIntensityAttr().Set(180.0)        # 홀 전체는 어둡게
+    sky = UsdLux.DomeLight(stage.GetPrimAtPath("/World/SkyLight"))
+    sky.GetIntensityAttr().Set(220.0)
+    sky.CreateColorAttr(Gf.Vec3f(*COOL))
+    hall = make_material(stage, "hall_floor", color=(0.20, 0.20, 0.22), roughness=0.22)             # 매끈한 전시장 바닥
+    UsdShade.MaterialBindingAPI.Apply(stage.GetPrimAtPath("/World/GroundVisual")).Bind(hall)
+    make_material(stage, "led_pink", color=PINK, glow=12.0)
+    make_material(stage, "led_white", color=(1.0, 0.92, 0.96), glow=10.0)
+    UsdGeom.Scope.Define(stage, f"{BOOTH}/Lights")
+    UsdGeom.Scope.Define(stage, f"{BOOTH}/Leds")
+    count = 0
+    for geom in mjcf.iter("geom"):                              # 설계의 등기구(벽 위 3 · 뒷벽 4 · 물결 간판 5): 빛나는 원판 자리에 조명
+        if geom.get("name").startswith("lamp_glow"):
+            position, yaw = numbers(geom.get("pos")), numbers(geom.get("euler"))[2]
+            out = (math.cos(yaw), math.sin(yaw))                # 등기구의 팔이 벽에서 뻗어 나온 방향
+            add_spot(stage, f"{BOOTH}/Lights/{geom.get('name')}", position, (-0.38 * out[0], -0.38 * out[1], -1.0), LAMP)
+            count += 1
+    add_spot(stage, f"{BOOTH}/Lights/booth_key", (4.5, -3.0, 9.0), (0.0, 0.0, -1.0), KEY, color=(1.0, 0.97, 0.94), cone=38.0, radius=0.3)
+    for k, (x, y) in enumerate([(1.3, -4.5), (3.2, -4.6), (3.2, -1.6), (5.6, -1.2), (6.3, -3.2), (6.4, -4.9), (8.2, -4.2)]):
+        add_spot(stage, f"{BOOTH}/Lights/down_{k}", (x, y, 4.4), (0.0, 0.0, -1.0), DOWN, cone=58.0)       # 부스 안을 위에서 비추는 조명
+        count += 1
+    wave = next(item for item in mjcf.findall("asset/mesh") if len(item.get("vertex").split()) > 1500)   # 물결 간판의 옆면
+    points = np.array(numbers(wave.get("vertex"))).reshape(-1, 3)
+    edge = [p for p in points[:226] if abs(p[2] - points[:, 2].min()) < 1e-6]         # 한쪽 면의 아래 모서리
+    add_ribbon(stage, "wave_led", edge)
+    for k, i in enumerate(range(12, len(edge), 22)):            # 간판 아래로 떨어지는 분홍빛
+        add_spot(stage, f"{BOOTH}/Lights/wave_wash_{k}", (edge[i][0], edge[i][1], edge[i][2] - 0.05), (0.0, 0.0, -1.0), WASH, color=PINK, cone=60.0)
+        count += 1
+    tubes = [("fascia_led", (2.2, 0.02, 3.69), (7.3, 0.02, 3.69), PINK),            # 정면 띠 아래
+             ("pillar_led_a", (7.55, 0.01, 0.05), (7.55, 0.01, 4.45), (1.0, 0.92, 0.96)),   # 기둥 모서리 두 줄
+             ("pillar_led_b", (7.55, -0.91, 0.05), (7.55, -0.91, 4.45), (1.0, 0.92, 0.96)),
+             ("desk_led_a", (7.52, -6.02, 0.06), (8.98, -6.02, 0.06), PINK),        # 인포 데스크 아래
+             ("desk_led_b", (9.02, -4.52, 0.06), (9.02, -5.98, 0.06), PINK)]
+    for name, start, end, color in tubes:
+        add_tube(stage, name, start, end, LED, color)
+    return count + 1 + len(tubes)
+
+
 def add_cups(stage):
     """음료대 위에 컵 세 개 (지름 5 cm, 높이 9 cm, 100 g 의 원기둥). 뒤 강의에서 집을 물체."""
     UsdGeom.Scope.Define(stage, "/World/Cups")
@@ -335,6 +432,14 @@ def save_photos(app, stage, cameras, folder):
 if __name__ == "__main__":
     stage = new_scene()
     cameras = add_booth(stage, mjcf)
+    if not args.plain:
+        print(f"조명 {add_lights(stage, mjcf)}개 (등기구 12 · 위의 큰 조명 1 · 안쪽 조명 7 · 분홍빛 5 · LED 줄 5)", flush=True)
+        import carb
+        settings = carb.settings.get_settings()
+        settings.set("/rtx/post/lensFlares/enabled", True)           # 밝은 곳이 번져 보이게 (Bloom)
+        settings.set("/rtx/post/lensFlares/flareScale", 0.12)
+        settings.set("/rtx/reflections/enabled", True)               # 바닥에 조명이 비치게
+        settings.set("/rtx/indirectDiffuse/enabled", True)           # 벽에 반사된 빛
     if args.robot:
         sys.path.insert(0, os.path.join(REPO, "37_pl2m_import"))
         from import_pl2m import BODY, find_urdf, import_pl2m
@@ -350,6 +455,8 @@ if __name__ == "__main__":
         for name, eye, target in ROBOT_VIEWS:
             set_camera_view(eye=list(eye), target=list(target), camera_prim_path=f"{BOOTH}/Cameras/{name}")
         wanted = [f"{BOOTH}/Cameras/{name}" for name, _, _ in ROBOT_VIEWS] if args.robot else cameras
+        if os.environ.get("BOOTH_VIEWS"):          # 조명을 맞출 때: 몇 장만 찍기 (예: BOOTH_VIEWS="bird1 studio")
+            wanted = [f"{BOOTH}/Cameras/{name}" for name in os.environ["BOOTH_VIEWS"].split()]
         sim.play()                                 # 사진은 Play 중에 찍힌다
         sim.run(1.0)
         for path in save_photos(app, stage, wanted, os.path.join(os.path.dirname(args.save), "photos")):

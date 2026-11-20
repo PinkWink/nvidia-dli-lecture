@@ -23,6 +23,7 @@
 
 - MuJoCo 장면 파일에 무엇이 들어 있는지 읽기.
 - 도형 · 재질 · 카메라를 하나씩 Isaac Sim 의 Prim 으로 옮기기.
+- 전시장답게 조명 넣기.
 - 옮긴 부스에 PL-2M 과 컵 세 개를 올리기.
 
 ## 2. MuJoCo 장면 파일 읽기
@@ -88,8 +89,8 @@ MuJoCo 장면 파일: /home/pw/nvidia-dli-lecture/work/booth/booth.xml
 
 ### 옮기지 않은 것
 
-- 조명 7개: 강의 3 부터 쓰는 기본 조명(해 + 주변광)을 그대로 씀.
-- 전시장 바닥 1개: 기본 바닥이 대신함. 색만 원본에 맞춤.
+- 조명 7개: MuJoCo 는 조명을 8개까지만 쓸 수 있어 원본도 줄여 넣은 것임. 옮기지 않고 5절에서 새로 넣음.
+- 전시장 바닥 1개: 기본 바닥이 대신함.
 
 ## 4. 옮기기
 
@@ -100,12 +101,14 @@ MuJoCo 장면 파일: /home/pw/nvidia-dli-lecture/work/booth/booth.xml
 ```
 
 - 부스를 만들어 `work/booth/booth.usd` 로 저장하고, 설계자가 정해 둔 시점 7개로 사진을 찍음.
+- `--plain` 을 붙이면 5절의 조명 없이 기본 조명(강의 3)으로 만듦.
 
 ### 실행 결과
 
 ```text
 옮긴 도형: box 155, capsule 120, sphere 45, cylinder 39, plane 30, mesh 3, 옮기지 않음 1
 재질 61개, 카메라 7개, 충돌체 291개
+조명 30개 (등기구 12 · 위의 큰 조명 1 · 안쪽 조명 7 · 분홍빛 5 · LED 줄 5)
 장면 저장: /home/pw/nvidia-dli-lecture/work/booth/booth.usd
 사진 저장: /home/pw/nvidia-dli-lecture/work/booth/photos/booth_bird1.png
 ...
@@ -117,9 +120,7 @@ MuJoCo 장면 파일: /home/pw/nvidia-dli-lecture/work/booth/booth.xml
 ### MuJoCo 와 나란히
 
 - 같은 카메라로 찍은 것임. 벽, 가구, 사람의 자리가 같음.
-- 다른 곳은 전시장 바닥 무늬와 조명임 (3절에서 옮기지 않은 것).
-
-### 정면에서
+- 형상만 비교하려고 Isaac Sim 쪽은 기본 조명(`--plain`)으로 찍었음.
 
 ### 교실 쪽
 
@@ -127,7 +128,66 @@ MuJoCo 장면 파일: /home/pw/nvidia-dli-lecture/work/booth/booth.xml
 
 ### 위에서
 
-## 5. 코드 읽기
+## 5. 전시장 조명
+
+### 기본 조명과 전시장 조명
+
+- 왼쪽은 강의 3 부터 써 온 해 + 주변광임. 고르게 밝지만 평평해 보임.
+- 오른쪽은 홀을 어둡게 하고 부스의 조명을 따로 넣은 것임. 이 강의의 기본값임.
+
+### 넣은 조명
+
+| 조명 | 수 | 종류 | 하는 일 |
+|---|---|---|---|
+| 등기구 | 12 | Sphere Light + Cone | 설계의 등기구 자리에서 간판과 벽을 비춤 |
+| 위의 큰 조명 | 1 | Sphere Light + Cone | 9 m 위에서 부스 전체를 비춤 |
+| 안쪽 조명 | 7 | Sphere Light + Cone | 부스 안을 위에서 비춤 |
+| 분홍빛 | 5 | Sphere Light + Cone | 물결 간판 아래로 떨어지는 분홍빛 |
+| LED 줄 | 5 | Cylinder Light | 정면 띠 아래, 기둥 모서리, 인포 데스크 아래 |
+
+- 등기구 12개의 자리는 설계 데이터에 있는 것임 (정면 3 · 뒷벽 4 · 물결 간판 5).
+- 나머지 조명의 자리와 밝기, 색은 이 강의에서 정한 값임.
+
+### 정면에서
+
+- 간판 위의 등기구가 만든 빛의 원, 간판 아래의 LED 띠, 기둥 모서리의 LED 줄이 보임.
+- 어둡고 매끈한 전시장 바닥에 부스의 불빛이 비침.
+
+### 한쪽으로만 비추는 조명
+
+```python
+light = UsdLux.SphereLight.Define(stage, path)
+light.CreateRadiusAttr(radius)
+light.CreateNormalizeAttr(True)                 # 밝기가 조명의 크기에 따라 달라지지 않게
+light.CreateIntensityAttr(intensity)
+light.CreateColorAttr(Gf.Vec3f(*color))
+shaping = UsdLux.ShapingAPI.Apply(light.GetPrim())
+shaping.CreateShapingConeAngleAttr(cone)
+shaping.CreateShapingConeSoftnessAttr(0.4)
+```
+
+- Create > Light > Sphere Light 를 만들고 Property 의 Shaping > Cone 에 각도를 넣는 것과 같음.
+- Cone 의 각도 밖으로는 빛이 나가지 않아 스포트라이트가 됨. Softness 는 가장자리를 부드럽게 함.
+
+### LED 줄
+
+```python
+light = UsdLux.CylinderLight.Define(stage, f"{BOOTH}/Lights/{name}")
+light.CreateLengthAttr(length)
+light.CreateRadiusAttr(radius)
+light.CreateIntensityAttr(intensity)
+light.CreateColorAttr(Gf.Vec3f(*color))
+```
+
+- Cylinder Light 는 긴 막대 모양의 조명임. 주변을 비추는 일을 맡음 (일부만 보였음).
+- 조명은 카메라에 보이지 않아, 같은 자리에 스스로 빛나는 재질의 가는 기둥을 하나 더 둠.
+
+### 바닥과 화면 효과
+
+- 전시장 바닥과 부스 바닥판의 재질을 매끈하게 함 (거칠기 0.22 · 0.25). 조명이 바닥에 비침.
+- 밝은 곳이 번져 보이는 효과(Bloom)와 반사를 켬. 스크립트로 띄울 때 적용되는 화면 설정임.
+
+## 6. 코드 읽기
 
 ### 상자
 
@@ -176,7 +236,7 @@ if geom.get("group") == "0" and kind not in ("plane", "mesh"):      # 라이다 
 
 - 3절의 기준을 한 줄로 적은 것임.
 
-## 6. PL-2M 과 컵 올리기
+## 7. PL-2M 과 컵 올리기
 
 ### 터미널
 
@@ -213,26 +273,30 @@ if geom.get("group") == "0" and kind not in ("plane", "mesh"):      # 라이다 
 - 로봇은 부스 바닥판(두께 2 cm) 위에 서서 `base_link` 높이가 0.107 m 임 (강의 37 의 0.087 + 0.02).
 - 컵은 음료대(높이 0.75 m) 위에 놓여 가운데 높이가 0.795 m 임. 5초 동안 움직이지 않았음.
 
-## 7. 해 볼 것
+## 8. 해 볼 것
 
 ### 직접 바꿔 보기
 
 - `--gui` 로 띄워 Stage 의 `Booth > Cameras` 에서 카메라를 골라 설계 시점으로 보기.
 - `Booth > People` 의 사람 하나를 골라 Translate 로 옮겨 보기.
 - `SPAWN` 값을 바꿔 로봇을 음료대 앞 (7.65, −2.82) 에 놓아 보기.
+- `LAMP` · `KEY` · `DOWN` 값을 바꿔 조명의 밝기를 바꿔 보기. `PINK` 를 다른 색으로 바꿔 보기.
 
-## 8. 정리
+## 9. 정리
 
 ### 기억할 것
 
 - MuJoCo 와 Isaac Sim 은 좌표계와 단위가 같아, 장면 파일의 숫자를 그대로 옮길 수 있음.
 - 도형은 종류별로 대응하는 Prim 이 있음. 크기 표기(절반 크기)와 방향 표기만 바꿔 줌.
 - 충돌체는 "로봇이 부딪히거나 라이다로 봐야 하는 것" 에만 붙임.
-- 부스(장면)와 로봇, 물체는 Stage 에서 따로 둠. 부스만 저장하면 56 KB, 로봇까지 넣으면 112 MB 임.
+- 조명은 한 가지로 비추지 않음. 전체는 어둡게, 보여 줄 곳은 스포트라이트로, 선은 LED 줄로 나눠 넣음.
+- 부스(장면)와 로봇, 물체는 Stage 에서 따로 둠. 부스만 저장하면 62 KB, 로봇까지 넣으면 112 MB 임.
 
 ### 한계
 
-- 조명은 옮기지 않았음. 모니터 화면이 스스로 빛나는 것도 원본과 같은지 비교하지 않았음.
+- 조명의 밝기와 색은 사진을 보며 맞춘 값임. 실제 부스의 조명과 비교하지 않았음.
+- Bloom 과 반사 설정은 이 스크립트로 띄울 때만 적용됨. 저장한 `booth.usd` 를 File > Open 으로 열었을 때의 모습은 확인하지 않았음.
+- 조명이 30개로 늘어난 뒤의 화면 속도는 재지 않았음.
 - 로봇은 서 있기만 했음. 부스 안에서 주행하거나 라이다로 벽을 보는 것은 확인하지 않았음.
 - 부스 바닥판 가장자리에는 2 cm 의 턱이 있음. 로봇이 넘을 수 있는지는 확인하지 않았음.
 - 사람은 움직이지 않는 도형 묶음임.
