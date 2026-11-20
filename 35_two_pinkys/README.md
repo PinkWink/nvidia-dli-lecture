@@ -4,6 +4,7 @@
 
 | 파일 |
 |---|
+| [start_nav2.py](start_nav2.py) |
 | [two_pinky_nav2.launch.py](two_pinky_nav2.launch.py) |
 | [two_pinkys.py](two_pinkys.py) |
 
@@ -173,7 +174,7 @@ ros2 topic pub -r 10 /pinky2/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.1}}
 | RViz2 | 로봇마다 창 하나 | 18 |
 
 - 전부 같은 네임스페이스(`pinky1`, `pinky2`)로 띄웁니다. 지도 파일은 둘이 같은 것을 씁니다.
-- 실행 파일 하나(`35_two_pinkys/two_pinky_nav2.launch.py`)가 이 표를 두 번 반복합니다.
+- 실행 파일 하나(`35_two_pinkys/two_pinky_nav2.launch.py`)가 이 표를 두 번 반복하고, 끝으로 `start_nav2.py` 를 실행합니다.
 
 ### 설정은 강의 18 것을 그대로, 세 가지만 바꾼다
 
@@ -199,27 +200,63 @@ text = f"{name}:\n" + "".join("  " + line for line in text.splitlines(keepends=T
 - 지도는 강의 17 에서 pinky1 의 자리를 원점으로 만들었습니다. 그래서 pinky1 은 (0, 0) 입니다.
 - 바꾸는 식: 지도 (x, y) = (도시 Y + 0.5, −도시 X − 1.05), 방향은 90° 를 뺍니다.
 
-### 로봇 한 대씩, 준비 시작은 조금 늦게
+### Nav2 는 "준비 시작" 을 받아야 켜진다
 
-```python
-STAGGER = 15.0        # 로봇 한 대의 Nav2 가 다 뜰 때까지 기다리는 시간 [s]
-START_DELAY = 8.0     # 노드를 띄운 뒤 준비 시작을 보낼 때까지 기다리는 시간 [s]
-RVIZ_DELAY = 10.0     # 준비 시작을 보낸 뒤 RViz2 를 띄울 때까지 [s]
+- Nav2 의 노드들은 뜨기만 해서는 일하지 않습니다. 관리자(lifecycle_manager)가 노드마다 "설정해라 → 켜라" 를 차례로 보내야 합니다.
+- 보통은 관리자가 뜨자마자 스스로 이것을 시작합니다(autostart).
+- 두 대를 띄운 강의 PC 에서는 이 방식이 네 번 모두 실패했습니다. `Failed to change state for node: …` 가 나오며 멈춥니다.
+
+### 로그에서 본 것: 너무 일찍 보낸다
+
+```text
+[map_server]: failed to send response to /pinky2/map_server/change_state (timeout): client will not receive response
 ```
 
-- pinky1 의 노드를 띄우고 → 8초 뒤 "준비 시작" → 15초 뒤 pinky2 를 같은 순서로 띄웁니다.
-- Nav2 는 보통 노드가 뜨자마자 준비를 시작합니다(autostart). 이 강의에서는 그것을 끄고 따로 보냅니다. 이유는 다음 장입니다.
+- 관리자는 뜬 지 0.1 ~ 1초 만에 첫 요청을 보냅니다. 그때는 노드들이 아직 서로를 다 찾지 못했습니다.
+- 위 로그는 지도 서버가 "응답을 받을 상대를 못 찾아 응답을 버렸다" 는 뜻입니다. 관리자는 그 응답을 계속 기다립니다.
+- 왜 이렇게 되는지 그 아래 원인까지는 확인하지 못했습니다.
 
-### 왜 늦게 보내나: 강의 PC 에서 잰 결과
+### 해결: 받을 준비가 됐는지 확인하고 보낸다
 
-| 준비 시작을 보내는 때 | 시험 횟수 | 두 대 모두 준비됨 |
-|---|---|---|
-| 노드가 뜨자마자 (기본) | 4 | 0 |
-| 8초 뒤 | 10 | 10 |
+```python
+def connected(node, robot, group):
+    if node.count_services(f"/{robot}/lifecycle_manager_{group}/manage_nodes") < 1:
+        return False
+    for name in GROUPS[group]:
+        for service in ("change_state", "get_state"):
+            path = f"/{robot}/{name}/{service}"
+            if node.count_services(path) < 1 or node.count_clients(path) < 1:
+                return False
+    return True
+```
 
-- 기본 방식에서는 `Failed to change state for node: …` 가 나오며 Nav2 가 준비를 멈췄습니다.
-- 로그를 보면 노드들이 서로를 찾기 전에 준비 요청이 오가면서 응답이 유실되거나 거절됩니다. 정확히 왜 그런지까지는 확인하지 못했습니다.
-- 한 대일 때(강의 18, Nav2 를 한 프로세스에 묶어 띄움)는 보지 못한 문제입니다. 이번에는 로봇당 프로세스 12개를 따로 띄웁니다.
+- `35_two_pinkys/start_nav2.py` 의 일부입니다. autostart 를 끄고, 이 스크립트가 대신 시작을 보냅니다.
+- 서비스마다 **서버 1개(노드)와 클라이언트 1개(관리자)** 가 보이는지 셉니다. 둘 다 보이면 서로 연결된 것입니다.
+- 정해 둔 시간을 기다리는 것이 아니라, 연결이 실제로 보일 때까지만 기다립니다.
+
+### 보낸 뒤에도 확인한다
+
+```python
+call(node, manage, ManageLifecycleNodes.Request(command=STARTUP))
+answer = call(node, is_active, Trigger.Request())
+if answer is not None and answer.success:
+    return True
+call(node, manage, ManageLifecycleNodes.Request(command=RESET))    # 아니면 초기화하고 다시 (최대 3번)
+```
+
+- 관리자의 `is_active` 서비스는 "맡은 노드가 모두 켜졌는가" 에 답합니다.
+- 켜지지 않았으면 초기화하고 다시 시작합니다. 실행 파일은 이 스크립트가 끝난 뒤에 RViz2 를 띄웁니다.
+
+### 강의 PC 에서 잰 결과
+
+| 준비 시작을 보내는 방법 | 시험 횟수 | 두 대 모두 준비됨 | 준비까지 |
+|---|---|---|---|
+| 뜨자마자 (기본 autostart) | 4 | 0 | — |
+| 정해 둔 시간(8초 · 15초) 뒤 | 10 | 10 | 31 ~ 34초 |
+| **연결을 확인한 뒤** (이 강의) | 7 | 7 | 12초 |
+
+- 연결 확인 방식은 7번 모두 첫 시도에 켜졌습니다. 다시 시도하는 경로는 한 번도 쓰이지 않았습니다.
+- 연결을 기다린 시간은 0.4 ~ 1.8초였습니다. 8초를 기다릴 필요가 없었던 셈입니다.
 
 ## 5. Nav2 실행
 
@@ -242,12 +279,12 @@ ros2 launch ~/nvidia-dli-lecture/35_two_pinkys/two_pinky_nav2.launch.py
 [pinky2.lifecycle_manager_navigation]: Managed nodes are active
 ```
 
-- 로봇 두 대 × (위치 추정 · 주행) = 네 번입니다. 강의 PC 에서는 실행 후 31 ~ 34초에 네 번째가 나왔습니다.
-- 네 번이 다 나오지 않으면 Ctrl+C 로 끄고 다시 실행합니다.
+- 로봇 두 대 × (위치 추정 · 주행) = 네 번입니다. 강의 PC 에서는 실행 후 약 12초에 네 번째가 나왔습니다.
+- 이어서 `Nav2 준비 완료` 가 나오고 RViz2 창 두 개가 뜹니다. `Nav2 준비 실패` 가 나오면 Ctrl+C 로 끄고 다시 실행합니다.
 
 ### RViz2 두 창
 
-- 창마다 로봇 한 대의 세계입니다. 왼쪽은 pinky1, 오른쪽은 pinky2 가 자기 위치를 지도의 다른 곳에 그리고 있습니다.
+- 창마다 로봇 한 대의 세계입니다. 이 그림에서는 왼쪽이 pinky1, 오른쪽이 pinky2 입니다. 창이 뜨는 순서는 바뀔 수 있으니, 지도 위 로봇의 위치로 구분합니다.
 - 두 창 모두 Navigation · Localization 이 `active` 여야 합니다.
 - 창을 나눈 이유: RViz2 한 개는 `/tf` 를 하나만 읽습니다. tf 를 로봇마다 나눴으니 창도 로봇마다 하나입니다.
 
@@ -272,12 +309,12 @@ Goal finished with status: SUCCEEDED
 Goal finished with status: SUCCEEDED
 ```
 
-| | 걸린 시간 (세 번) | 도착 위치와 목표의 거리 |
+| | 걸린 시간 (네 번) | 도착 위치와 목표의 거리 |
 |---|---|---|
-| pinky1 | 21 · 22 · 24초 | 7 cm |
-| pinky2 | 25 · 27 · 30초 | 4 cm |
+| pinky1 | 21 · 22 · 23 · 24초 | 7 cm |
+| pinky2 | 25 · 27 · 30 · 33초 | 4 cm |
 
-- 세 번 모두 두 대가 도착했습니다. 거리는 마지막 회의 값이고, 도착 허용 오차는 8 cm 입니다.
+- 네 번 모두 두 대가 도착했습니다. 거리는 그중 한 회의 값이고, 도착 허용 오차는 8 cm 입니다.
 
 ### 움직이는 모습
 
@@ -310,7 +347,7 @@ Goal finished with status: SUCCEEDED
 ### 실행 파일을 두 번 부를 때의 주의
 
 ```python
-actions.append(GroupAction([IncludeLaunchDescription(
+ld.add_action(GroupAction([IncludeLaunchDescription(
     AnyLaunchDescriptionSource(os.path.join(NAVIGATION, "localization_launch.xml")),
     launch_arguments={**common, "map": LaunchConfiguration("map"), "lifecycle_nodes": LOCAL_NODES}.items())]))
 ```
@@ -334,10 +371,11 @@ actions.append(GroupAction([IncludeLaunchDescription(
 - 같은 로봇을 여러 대 쓰려면 토픽 · tf · 액션 이름을 로봇마다 나눠야 합니다. 그 방법이 네임스페이스입니다.
 - Isaac Sim 쪽은 ROS 2 노드의 **Node Namespace** 칸, ROS 2 쪽은 노드를 띄울 때의 `namespace` 입니다.
 - Nav2 는 로봇마다 한 벌씩 띄웁니다. 설정에서 로봇마다 다른 것은 라이다 토픽과 처음 위치입니다.
+- 노드가 많을 때는 "얼마 기다렸다 보내기" 보다 "받을 준비가 됐는지 확인하고 보내기" 가 빠르고 확실합니다.
 - 두 로봇은 서로를 라이다로 보고 피할 뿐, 길을 조율하지는 않습니다.
 
 ### 한계
 
 - 두 대, 한 가지 경로(자리 맞바꾸기)만 확인했습니다. 좁은 길에서 정면으로 마주치는 경우는 시험하지 않았습니다.
-- Nav2 준비 실패의 원인은 "뜨자마자 준비 요청을 보내는 것" 까지만 좁혔습니다. 8초 · 15초는 강의 PC 에서 통한 값이고, 더 느린 PC 에서는 늘려야 할 수 있습니다.
+- Nav2 준비 실패의 원인은 "뜨자마자 준비 요청을 보내는 것" 까지만 좁혔습니다. 연결 확인 방식은 강의 PC 한 대에서 7번 시험한 결과입니다.
 - 세 대 이상은 해 보지 않았습니다.

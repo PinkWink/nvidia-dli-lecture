@@ -10,6 +10,7 @@
     Nav2 (공식 pinky_navigation 의 localization_launch.xml · navigation_launch.xml)   지도 서버 · AMCL · 경로 계획 · 제어
     RViz2                      로봇마다 창 하나
 
+준비 시작은 start_nav2.py 가 맡습니다: 노드들이 서로 연결됐는지 확인한 뒤 보내고, 켜졌는지 다시 확인합니다.
 설정은 강의 18 의 nav2_params.yaml 을 그대로 읽어, 로봇마다 세 가지만 바꿉니다: 라이다 토픽 이름, 처음 위치, 맨 위에 로봇 이름 한 겹.
 """
 import math
@@ -18,8 +19,9 @@ import tempfile
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, GroupAction, IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, GroupAction, IncludeLaunchDescription, RegisterEventHandler
 from launch.conditions import IfCondition
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import AnyLaunchDescriptionSource, PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -31,9 +33,6 @@ URDF = os.path.join(REPO, "work", "pinky_description", "urdf", "pinky.urdf")
 MAP = os.path.join(REPO, "work", "pink_city", "pink_city_map.yaml")
 
 NAVIGATION = os.path.join(get_package_share_directory("pinky_navigation"), "launch")
-STAGGER = 15.0        # 로봇 한 대의 Nav2 가 다 뜰 때까지 기다리는 시간 [s]
-START_DELAY = 8.0     # 노드를 띄운 뒤 준비 시작을 보낼 때까지 기다리는 시간 [s]
-RVIZ_DELAY = 10.0     # 준비 시작을 보낸 뒤 RViz2 를 띄울 때까지 [s]
 # 공식 bringup_launch.xml 이 켜는 노드 목록과 같다
 LOCAL_NODES = "['map_server', 'amcl']"
 NAV_NODES = "['controller_server', 'planner_server', 'behavior_server', 'bt_navigator', 'waypoint_follower', 'velocity_smoother']"
@@ -68,29 +67,28 @@ def generate_launch_description():
                             DeclareLaunchArgument("rviz_config", default_value=os.path.join(HERE, "rviz", "nav2_namespaced.rviz"))])
     description = open(URDF).read()
     tf_remap = [("/tf", "tf"), ("/tf_static", "tf_static")]          # tf 도 로봇마다 따로: /pinky1/tf
-    for k, (name, x, y, yaw) in enumerate(ROBOTS):
-        actions = []
-        actions.append(Node(package="robot_state_publisher", executable="robot_state_publisher", namespace=name,
+    rviz = []
+    for name, x, y, yaw in ROBOTS:
+        ld.add_action(Node(package="robot_state_publisher", executable="robot_state_publisher", namespace=name,
                            parameters=[{"use_sim_time": True, "robot_description": description}], remappings=tf_remap))
-        params = robot_params(name, x, y, yaw)
-        common = {"namespace": name, "use_sim_time": "True", "params_file": params, "use_composition": "False", "autostart": "False"}
+        # autostart 를 끈다: 노드는 띄우기만 하고, 준비 시작은 아래 start_nav2.py 가 확인한 뒤에 보낸다
+        common = {"namespace": name, "use_sim_time": "True", "params_file": robot_params(name, x, y, yaw),
+                  "use_composition": "False", "autostart": "False"}
         # GroupAction 으로 감싸야 한 로봇에 준 값(namespace · lifecycle_nodes)이 다음 것에 섞이지 않는다
-        actions.append(GroupAction([IncludeLaunchDescription(          # 지도 서버 + AMCL
+        ld.add_action(GroupAction([IncludeLaunchDescription(          # 지도 서버 + AMCL
             AnyLaunchDescriptionSource(os.path.join(NAVIGATION, "localization_launch.xml")),
             launch_arguments={**common, "map": LaunchConfiguration("map"), "lifecycle_nodes": LOCAL_NODES}.items())]))
-        actions.append(GroupAction([IncludeLaunchDescription(          # 경로 계획 + 제어 + 행동 트리
+        ld.add_action(GroupAction([IncludeLaunchDescription(          # 경로 계획 + 제어 + 행동 트리
             AnyLaunchDescriptionSource(os.path.join(NAVIGATION, "navigation_launch.xml")),
             launch_arguments={**common, "lifecycle_nodes": NAV_NODES}.items())]))
-        # 노드들이 서로를 다 찾은 뒤에 "준비 시작" 을 보낸다. 뜨자마자 보내면 응답이 유실되어 멈추는 일이 있었다 (강의 PC)
-        manage = "ros2 service call /{0}/lifecycle_manager_{1}/manage_nodes nav2_msgs/srv/ManageLifecycleNodes '{{command: 0}}'"
-        actions.append(TimerAction(period=START_DELAY, actions=[ExecuteProcess(
-            cmd=[manage.format(name, "localization") + " && " + manage.format(name, "navigation")], shell=True, output="log")]))
-        # RViz2 (로봇마다 창 하나). Nav2 가 준비된 뒤에 띄워야 Navigation 2 패널이 처음부터 active 로 보인다
-        actions.append(TimerAction(period=START_DELAY + RVIZ_DELAY, actions=[GroupAction([IncludeLaunchDescription(
+        rviz.append(GroupAction([IncludeLaunchDescription(            # RViz2 (로봇마다 창 하나)
             PythonLaunchDescriptionSource(os.path.join(get_package_share_directory("nav2_bringup"), "launch", "rviz_launch.py")),
             launch_arguments={"namespace": name, "use_namespace": "True", "use_sim_time": "True",
                               "rviz_config": LaunchConfiguration("rviz_config")}.items())],
-            condition=IfCondition(LaunchConfiguration("use_rviz")))]))
-        # 노드 수십 개가 한꺼번에 뜨면 준비 신호가 유실되는 일이 있어, 로봇 한 대씩 STAGGER 초 간격으로 띄운다
-        ld.add_action(TimerAction(period=float(k * STAGGER), actions=actions))
+            condition=IfCondition(LaunchConfiguration("use_rviz"))))
+    # 받을 준비가 됐는지 확인 → 준비 시작 → 켜졌는지 확인 (로봇 한 대씩 차례로)
+    starter = ExecuteProcess(cmd=["python3", os.path.join(HERE, "start_nav2.py")] + [name for name, *_ in ROBOTS], output="screen")
+    ld.add_action(starter)
+    # RViz2 는 Nav2 가 준비된 뒤에 띄운다. 그래야 Navigation 2 패널이 처음부터 active 로 보인다
+    ld.add_action(RegisterEventHandler(OnProcessExit(target_action=starter, on_exit=rviz)))
     return ld
