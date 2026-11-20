@@ -64,15 +64,20 @@ OBSTACLES = [                     # (모양, 위치, 크기) — 작은 로봇�
 WALL = "/World/Wall"
 
 
-def add_lidar(stage, draw=False):
+def of_robot(path, robot):
+    """기본 로봇(/World/pinky)의 Prim 경로를 다른 로봇의 같은 자리 경로로 바꾼다 (강의 35: 로봇 여러 대)."""
+    return robot + path[len(ROBOT):]
+
+
+def add_lidar(stage, draw=False, robot=ROBOT):
     """2D 라이다: rplidar_link 의 자식. 수평 360° 를 0.5° 간격으로, 1초에 10바퀴."""
     enable_extension("isaacsim.sensors.physx")
     omni.kit.commands.execute(
-        "RangeSensorCreateLidar", path="/Lidar", parent=LIDAR_LINK,
+        "RangeSensorCreateLidar", path="/Lidar", parent=of_robot(LIDAR_LINK, robot),
         min_range=LIDAR_RANGE[0], max_range=LIDAR_RANGE[1], horizontal_fov=360.0, horizontal_resolution=0.5,
         vertical_fov=1.0, vertical_resolution=1.0, rotation_rate=10.0, high_lod=False, yaw_offset=0.0,
         draw_points=False, draw_lines=draw, enable_semantics=False)
-    return stage.GetPrimAtPath(LIDAR)
+    return stage.GetPrimAtPath(of_robot(LIDAR, robot))
 
 
 def add_ultrasonic(stage, draw=False):
@@ -86,11 +91,11 @@ def add_ultrasonic(stage, draw=False):
     return stage.GetPrimAtPath(ULTRASONIC)
 
 
-def add_imu(stage):
+def add_imu(stage, robot=ROBOT):
     """IMU: imu_link 의 자식. 이 자리가 겪는 가속도 · 각속도 · 자세를 잰다."""
     enable_extension("isaacsim.sensors.physics")
-    omni.kit.commands.execute("IsaacSensorCreateImuSensor", path="/Imu_Sensor", parent=IMU_LINK)
-    return stage.GetPrimAtPath(IMU)
+    omni.kit.commands.execute("IsaacSensorCreateImuSensor", path="/Imu_Sensor", parent=of_robot(IMU_LINK, robot))
+    return stage.GetPrimAtPath(of_robot(IMU, robot))
 
 
 def read_imu():
@@ -102,9 +107,9 @@ def read_imu():
     return [round(float(v), 2) + 0.0 for v in acc], [round(float(v), 2) + 0.0 for v in gyro]
 
 
-def add_camera(stage):
+def add_camera(stage, robot=ROBOT):
     """카메라: front_camera_link 의 자식. 링크의 +X 가 카메라가 보는 방향이 되게 돌린다."""
-    camera = UsdGeom.Camera.Define(stage, CAMERA)
+    camera = UsdGeom.Camera.Define(stage, of_robot(CAMERA, robot))
     aperture = 20.955                                                   # 가로 센서 크기 [mm] (USD 기본값)
     camera.CreateHorizontalApertureAttr(aperture)
     camera.CreateVerticalApertureAttr(aperture * 9.0 / 16.0)             # 16 : 9 (1280 × 720)

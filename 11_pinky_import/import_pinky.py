@@ -114,8 +114,11 @@ def use_pgs_solver(stage, scene_path="/World/PhysicsScene"):
     PhysxSchema.PhysxSceneAPI.Apply(stage.GetPrimAtPath(scene_path)).CreateSolverTypeAttr("PGS")
 
 
-def import_pinky(stage, urdf_path, height=START_HEIGHT):
-    """URDF Importer 창에서 하는 일을 명령으로 한다 (강의 8 의 Carter 와 같은 순서)."""
+def import_pinky(stage, urdf_path, height=START_HEIGHT, path=ROBOT):
+    """URDF Importer 창에서 하는 일을 명령으로 한다 (강의 8 의 Carter 와 같은 순서).
+
+    path: 로봇을 둘 Prim 경로. 로봇을 여러 대 올릴 때 서로 다르게 준다 (강의 35).
+    """
     use_pgs_solver(stage)
     enable_extension("isaacsim.asset.importer.urdf")
     from isaacsim.asset.importer.urdf import _urdf
@@ -137,10 +140,10 @@ def import_pinky(stage, urdf_path, height=START_HEIGHT):
         else:
             drive.set_target_type(_urdf.UrdfJointTargetType.JOINT_DRIVE_NONE)        # Target: None (캐스터)
 
-    _, path = omni.kit.commands.execute("URDFImportRobot", urdf_path=urdf_path, urdf_robot=robot, import_config=config)
-    if path != ROBOT:
-        omni.kit.commands.execute("MovePrim", path_from=path, path_to=ROBOT)
-    prim = stage.GetPrimAtPath(ROBOT)
+    _, imported = omni.kit.commands.execute("URDFImportRobot", urdf_path=urdf_path, urdf_robot=robot, import_config=config)
+    if imported != path:
+        omni.kit.commands.execute("MovePrim", path_from=imported, path_to=path)
+    prim = stage.GetPrimAtPath(path)
     set_pose(prim, translate=(0.0, 0.0, height))
     return prim
 

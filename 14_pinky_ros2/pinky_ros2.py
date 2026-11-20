@@ -50,7 +50,7 @@ sys.path.insert(0, os.path.join(HERE, "..", "12_pinky_sensors"))
 from common.sim import Sim, new_scene, pose_of, save_stage, set_view
 from import_pinky import (BODY, DEFAULT_URDF, MAX_ANGULAR, MAX_LINEAR, ROBOT, WHEEL_DISTANCE, WHEEL_JOINTS, WHEEL_RADIUS, find_urdf,
                           import_pinky)
-from pinky_sensors import CAMERA, IMU, LIDAR, add_camera, add_imu, add_lidar, add_obstacles
+from pinky_sensors import CAMERA, IMU, LIDAR, add_camera, add_imu, add_lidar, add_obstacles, of_robot
 
 BASE = ROBOT + "/base_footprint"          # 로봇의 기준 링크 (바닥에 닿는 점). Articulation Root 가 여기 있다
 DRIVE_GRAPH = "/Graphs/ros2_cmd_vel"
@@ -60,14 +60,20 @@ LIDAR_FIELDS = ("azimuthRange", "depthRange", "horizontalFov", "horizontalResolu
                 "linearDepthData", "numCols", "numRows", "rotationRate")
 
 
-def add_cmd_vel_subscriber():
+def _namespaced(nodes, namespace):
+    """ROS 2 노드들의 Node Namespace 칸에 같은 이름을 넣는다. "pinky1" 이면 토픽이 /pinky1/cmd_vel 처럼 된다 (강의 35)."""
+    return [(f"{node}.inputs:nodeNamespace", namespace) for node in nodes] if namespace else []
+
+
+def add_cmd_vel_subscriber(robot=ROBOT, namespace="", graph=DRIVE_GRAPH):
     """/cmd_vel (Twist) → 직진 속도 x · 회전 속도 z → 차동 제어기 → 바퀴 관절.
 
     강의 11 의 키보드 그래프에서 "키보드" 자리를 "ROS 2 구독" 으로 바꾼 것입니다.
+    robot · namespace · graph 는 로봇을 여러 대 올릴 때 쓴다 (강의 35).
     """
     keys = og.Controller.Keys
     og.Controller.edit(
-        {"graph_path": DRIVE_GRAPH, "evaluator_name": "execution"},
+        {"graph_path": graph, "evaluator_name": "execution"},
         {
             keys.CREATE_NODES: [
                 ("OnPlaybackTick", "omni.graph.action.OnPlaybackTick"),
@@ -84,9 +90,9 @@ def add_cmd_vel_subscriber():
                 ("DifferentialController.inputs:wheelDistance", WHEEL_DISTANCE),
                 ("DifferentialController.inputs:maxLinearSpeed", MAX_LINEAR),
                 ("DifferentialController.inputs:maxAngularSpeed", MAX_ANGULAR),
-                ("ArticulationController.inputs:targetPrim", ROBOT),
+                ("ArticulationController.inputs:targetPrim", robot),
                 ("ArticulationController.inputs:jointNames", WHEEL_JOINTS),
-            ],
+            ] + _namespaced(["SubscribeTwist"], namespace),
             keys.CONNECT: [
                 ("OnPlaybackTick.outputs:tick", "SubscribeTwist.inputs:execIn"),
                 ("OnPlaybackTick.outputs:tick", "ArticulationController.inputs:execIn"),
@@ -102,14 +108,15 @@ def add_cmd_vel_subscriber():
     )
 
 
-def add_state_publishers():
+def add_state_publishers(robot=ROBOT, namespace="", graph=STATE_GRAPH, clock=True):
     """로봇의 상태 내보내기: /clock · /odom · /tf (odom → base_footprint) · /joint_states.
 
+    namespace 를 주면 /pinky1/odom · /pinky1/tf 처럼 나간다. /clock 은 시계가 하나라 이름을 붙이지 않는다. 두 번째 로봇부터는 clock=False.
     base_footprint 아래 링크들의 tf 는 ROS 2 의 robot_state_publisher 가 URDF 와 /joint_states 로 계산한다 (실물 로봇과 같은 구성).
     """
     keys = og.Controller.Keys
     og.Controller.edit(
-        {"graph_path": STATE_GRAPH, "evaluator_name": "execution"},
+        {"graph_path": graph, "evaluator_name": "execution"},
         {
             keys.CREATE_NODES: [
                 ("OnPlaybackTick", "omni.graph.action.OnPlaybackTick"),
@@ -122,17 +129,16 @@ def add_state_publishers():
                 ("PublishJointState", "isaacsim.ros2.bridge.ROS2PublishJointState"),
             ],
             keys.SET_VALUES: [
-                ("ComputeOdometry.inputs:chassisPrim", BASE),
+                ("ComputeOdometry.inputs:chassisPrim", of_robot(BASE, robot)),
                 ("PublishOdometry.inputs:topicName", "odom"),
                 ("PublishOdometry.inputs:odomFrameId", "odom"),
                 ("PublishOdometry.inputs:chassisFrameId", "base_footprint"),
                 ("PublishOdomTF.inputs:parentFrameId", "odom"),
                 ("PublishOdomTF.inputs:childFrameId", "base_footprint"),
-                ("PublishJointState.inputs:targetPrim", BASE),               # Articulation Root 가 있는 Prim
+                ("PublishJointState.inputs:targetPrim", of_robot(BASE, robot)),               # Articulation Root 가 있는 Prim
                 ("PublishJointState.inputs:topicName", "joint_states"),
-            ],
-            keys.CONNECT: [
-                ("OnPlaybackTick.outputs:tick", "PublishClock.inputs:execIn"),
+            ] + _namespaced(["PublishOdometry", "PublishOdomTF", "PublishJointState"], namespace),
+            keys.CONNECT: ([("OnPlaybackTick.outputs:tick", "PublishClock.inputs:execIn")] if clock else []) + [
                 ("OnPlaybackTick.outputs:tick", "ComputeOdometry.inputs:execIn"),
                 ("OnPlaybackTick.outputs:tick", "PublishJointState.inputs:execIn"),
                 ("ComputeOdometry.outputs:execOut", "PublishOdometry.inputs:execIn"),
@@ -151,11 +157,11 @@ def add_state_publishers():
     )
 
 
-def add_sensor_publishers(width=640, height=360):
-    """센서 내보내기: /scan (라이다) · /camera/image_raw (카메라) · /imu (IMU)."""
+def add_sensor_publishers(width=640, height=360, robot=ROBOT, namespace="", graph=SENSOR_GRAPH, camera=True):
+    """센서 내보내기: /scan (라이다) · /camera/image_raw (카메라) · /imu (IMU). camera=False 면 카메라는 뺀다."""
     keys = og.Controller.Keys
     og.Controller.edit(
-        {"graph_path": SENSOR_GRAPH, "evaluator_name": "execution"},
+        {"graph_path": graph, "evaluator_name": "execution"},
         {
             keys.CREATE_NODES: [
                 ("OnPlaybackTick", "omni.graph.action.OnPlaybackTick"),
@@ -169,19 +175,20 @@ def add_sensor_publishers(width=640, height=360):
                 ("PublishImu", "isaacsim.ros2.bridge.ROS2PublishImu"),
             ],
             keys.SET_VALUES: [
-                ("ReadLidar.inputs:lidarPrim", LIDAR),
+                ("ReadLidar.inputs:lidarPrim", of_robot(LIDAR, robot)),
                 ("PublishScan.inputs:topicName", "scan"),
                 ("PublishScan.inputs:frameId", "rplidar_link"),
-                ("RenderProduct.inputs:cameraPrim", CAMERA),
+                ("RenderProduct.inputs:cameraPrim", of_robot(CAMERA, robot)),
                 ("RenderProduct.inputs:width", width),
                 ("RenderProduct.inputs:height", height),
                 ("CameraHelper.inputs:type", "rgb"),
                 ("CameraHelper.inputs:topicName", "camera/image_raw"),
                 ("CameraHelper.inputs:frameId", "front_camera_link"),
-                ("ReadIMU.inputs:imuPrim", IMU),
+                ("ReadIMU.inputs:imuPrim", of_robot(IMU, robot)),
                 ("PublishImu.inputs:topicName", "imu"),
                 ("PublishImu.inputs:frameId", "imu_link"),
-            ],
+                ("RenderProduct.inputs:enabled", camera),
+            ] + _namespaced(["PublishScan", "CameraHelper", "PublishImu"], namespace),
             keys.CONNECT: [
                 ("OnPlaybackTick.outputs:tick", "ReadLidar.inputs:execIn"),
                 ("ReadLidar.outputs:execOut", "PublishScan.inputs:execIn"),
