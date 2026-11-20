@@ -4,6 +4,7 @@ SimulationApp 을 만든 뒤에 import 합니다 (omni · pxr 모듈을 쓰기 �
 """
 import math
 import os
+import time
 
 import omni.physx
 import omni.timeline
@@ -63,6 +64,9 @@ def pose_of(prim):
 def set_view(eye, target):
     """창을 띄웠을 때 뷰포트 시점: eye 에서 target 을 본다."""
     from isaacsim.core.utils.viewports import set_camera_view
+    if os.environ.get("SIM_VIEW"):                # 녹화할 때 시점 바꾸기: SIM_VIEW="ex,ey,ez,tx,ty,tz"
+        v = [float(x) for x in os.environ["SIM_VIEW"].split(",")]
+        eye, target = v[:3], v[3:]
     set_camera_view(eye=list(eye), target=list(target))
 
 
@@ -87,6 +91,10 @@ class Sim:
 
     def play(self):
         for _ in range(10):
+            self.app.update()
+        wait = float(os.environ.get("SIM_WARMUP", "0"))      # 창이 다 그려질 때까지 기다렸다가 Play (녹화할 때)
+        start = time.time()
+        while time.time() - start < wait:
             self.app.update()
         self.timeline.play()
 

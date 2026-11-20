@@ -3,7 +3,7 @@
     ~/IsaacLab/isaaclab.sh -p 32_pinklab_pendulum/play.py                 # 창에서 16대를 계속 재생
     ~/IsaacLab/isaaclab.sh -p 32_pinklab_pendulum/play.py --headless --num_envs 256 --seconds 8     # 숫자로 평가
     ~/IsaacLab/isaaclab.sh -p 32_pinklab_pendulum/play.py --headless --num_envs 256 --seconds 8 --delay 20 --sensor_noise   # 강의 33
-    옵션: --checkpoint 파일 (없으면 가장 최근 학습의 마지막 정책)  --random_start (학습 때처럼 아무 자세에서 시작)
+    옵션: --checkpoint 파일 (없으면 가장 최근 학습의 마지막 정책)  --random_start (학습 때처럼 아무 자세에서 시작)  --eye X Y Z (창의 카메라 자리)
 
 평가: 모든 진자가 아래로 매달린 채 시작합니다. "섰다" = 진자가 똑바른 자세의 ±10° 안에 1초 동안 머문 것.
 """
@@ -17,6 +17,7 @@ from isaaclab.app import AppLauncher
 parser = argparse.ArgumentParser()
 parser.add_argument("--checkpoint", default=None, help="정책 파일 model_N.pt")
 parser.add_argument("--num_envs", type=int, default=16)
+parser.add_argument("--eye", type=float, nargs=3, default=None, metavar=("X", "Y", "Z"), help="창의 카메라 자리 [m] (기본 1.5 1.5 0.9)")
 parser.add_argument("--seconds", type=float, default=0.0, help="이 시간만 돌리고 결과를 출력한다. 0 이면 창을 닫을 때까지")
 parser.add_argument("--delay", type=float, default=0.0, help="명령의 지연 [ms]")
 parser.add_argument("--friction", type=float, default=1.0, help="진자 마찰의 배율")
@@ -44,6 +45,8 @@ print(f"정책: {checkpoint}", flush=True)
 
 env_cfg = PendulumEnvCfg()
 env_cfg.scene.num_envs = args.num_envs
+if args.eye:
+    env_cfg.viewer.eye = tuple(args.eye)
 env_cfg.start_hanging = not args.random_start
 env_cfg.delay_range = (args.delay / 1000.0, args.delay / 1000.0)
 env_cfg.friction_range = (args.friction, args.friction)

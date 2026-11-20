@@ -15,6 +15,7 @@ GUI 의 동작 하나가 아래 코드 한 덩어리에 해당합니다.
 """
 import argparse
 import os
+import time
 
 from isaacsim import SimulationApp
 
@@ -100,6 +101,9 @@ def cube_z():
 
 physics_sub = omni.physx.get_physx_interface().subscribe_physics_step_events(on_physics_step)
 timeline = omni.timeline.get_timeline_interface()
+warmup_end = time.time() + float(os.environ.get("SIM_WARMUP", "0"))   # 창이 다 그려질 때까지 기다렸다가 Play (녹화할 때)
+while time.time() < warmup_end:
+    app.update()
 timeline.play()
 
 print(f"{'시간[s]':>8} {'큐브 높이 z[m]':>14}", flush=True)
