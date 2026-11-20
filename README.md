@@ -58,6 +58,9 @@ cd ~/nvidia-dli-lecture
 | 26. HIL 흉내 내기: 로봇 컴퓨터의 자원 보기와 줄여 보기 | [26_hil/README.md](26_hil/README.md) | `computer_monitor.py` GPU · CPU 사용량을 `/diagnostics` 로 |
 | 27. 합성 데이터 만들기: Replicator 로 창고의 팔레트잭 데이터셋 | [27_palletjack_sdg/README.md](27_palletjack_sdg/README.md) | `make_dataset.py` 영상 + 상자 정답 600장 |
 | 28. 합성 데이터로 YOLO 학습: 실제 창고 사진에서 팔레트잭 찾기 | [28_palletjack_detect/README.md](28_palletjack_detect/README.md) | `to_yolo.py` KITTI → YOLO 형식 |
+| 29. Isaac Lab 시작: 강화학습의 생각, 설치, 둘러보기 | [29_isaac_lab/README.md](29_isaac_lab/README.md) | 명령 모음 |
+| 30. 첫 강화학습: Cartpole 프로젝트를 만들고 학습하기 | [30_cartpole_train/README.md](30_cartpole_train/README.md) | 명령 모음 |
+| 31. Cartpole 들여다보기: 재생, 학습 곡선, 과제 코드 | [31_cartpole_code/README.md](31_cartpole_code/README.md) | 명령 모음 |
 
 강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키우고, 강의 8 ~ 10 은 URDF 로 가져온 Carter 를 같은 순서(가져오기 → 조종 → 센서)로 다룹니다. 강의 11 ~ 13 은 핑크랩의 [Pinky Pro](https://github.com/pinklab-art/pinky_pro) 를 공식 저장소의 URDF 로 가져와 모터 · 센서 · 화면 · LED 까지 올립니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
 
