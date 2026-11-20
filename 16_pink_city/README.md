@@ -75,6 +75,7 @@ source /opt/ros/jazzy/setup.bash
 | `--seconds N` | `--ros2` 로 창 없이 돌릴 때 N 초 뒤 끝냄 |
 | `--start X Y YAW` | 로봇의 시작 위치 [m] 와 방향 [도]. 기본 `-1.05 -0.5 90` (강의 21 에서 사용) |
 | `--hide-lidar` | 창에서 라이다 빔을 그리지 않음 (강의 21 에서 사용) |
+| `--sim-control` | ROS 2 서비스로 시뮬레이터를 조종할 수 있게 함. `--ros2` 와 함께 (강의 36 에서 사용) |
 | `--save 파일.usd` | 만든 장면을 저장함 |
 | `--photo 폴더` | 사진을 저장할 폴더 (기본 `work/pink_city`) |
 

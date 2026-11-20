@@ -238,6 +238,7 @@ if __name__ == "__main__":
     parser.add_argument("--ros2", action="store_true", help="Pinky Pro 를 ROS 2 에 연결한다 (/cmd_vel 받기, /scan · /odom · /tf 등 내보내기)")
     parser.add_argument("--seconds", type=float, help="--ros2 일 때 이 시간이 지나면 끝냄 (없으면 Ctrl+C 까지)")
     parser.add_argument("--start", type=float, nargs=3, metavar=("X", "Y", "YAW"), help="로봇의 시작 위치 [m] 와 방향 [도] (기본: -1.05 -0.5 90)")
+    parser.add_argument("--sim-control", action="store_true", help="ROS 2 서비스로 시뮬레이터를 조종할 수 있게 한다 (강의 36, --ros2 와 함께)")
     parser.add_argument("--hide-lidar", action="store_true", help="창에서 라이다 빔을 그리지 않는다 (빔이 로봇 카메라 영상에 찍히지 않게 — 강의 21)")
     parser.add_argument("--save", metavar="USD", help="만든 도시를 이 경로에 저장한다")
     parser.add_argument("--photo", metavar="DIR", default=OUT, help="사진을 저장할 폴더")
@@ -248,6 +249,9 @@ if __name__ == "__main__":
         print("ROS 2 환경이 없습니다. 같은 터미널에서 먼저 실행하세요:  source /opt/ros/jazzy/setup.bash")
         sys.exit(1)
     # 창 없이 돌리면 시뮬레이션이 실제 시간보다 빨리 갑니다. 1초에 60프레임으로 맞춰 실제 시간과 같게 합니다.
+    if args.sim_control and "/opt/ros" in os.environ.get("LD_LIBRARY_PATH", ""):
+        print("--sim-control 은 Isaac Sim 안의 ROS 2 를 씁니다. 같은 터미널에서 먼저 실행하세요:  source common/isaac_ros_env.sh")
+        sys.exit(1)
     app = SimulationApp({"headless": not args.gui, "extra_args": [
         "--/app/runLoops/main/rateLimitEnabled=true", "--/app/runLoops/main/rateLimitFrequency=60"]})
 
@@ -474,6 +478,9 @@ if __name__ == "__main__":
             enable_extension("isaacsim.ros2.bridge")
             enable_extension("isaacsim.robot.wheeled_robots")
             app.update()
+            if args.sim_control:                   # 강의 36: 재생 · 정지, 물체 위치 읽기 · 옮기기를 ROS 2 서비스로
+                enable_extension("isaacsim.ros2.sim_control")
+                app.update()
             from pinky_ros2 import add_cmd_vel_subscriber, add_sensor_publishers, add_state_publishers
             from pinky_sensors import add_camera, add_imu, add_lidar
             add_lidar(stage, draw=args.gui and not args.hide_lidar)
