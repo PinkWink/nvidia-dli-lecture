@@ -133,7 +133,12 @@ def import_pl2m(stage, urdf_path, height=START_HEIGHT, path=ROBOT):
         else:
             drive.damping = 2 * joint.inertia * drive.natural_frequency * drive.damping_ratio
 
-    _, imported = omni.kit.commands.execute("URDFImportRobot", urdf_path=urdf_path, urdf_robot=robot, import_config=config)
+    here = os.getcwd()
+    os.chdir(os.path.dirname(urdf_path))          # Importer 가 그림 파일을 "지금 폴더/materials" 에 풀어 놓는다 → work/pl2m 안에 생기게
+    try:
+        _, imported = omni.kit.commands.execute("URDFImportRobot", urdf_path=urdf_path, urdf_robot=robot, import_config=config)
+    finally:
+        os.chdir(here)
     if imported != path:
         omni.kit.commands.execute("MovePrim", path_from=imported, path_to=path)
     prim = stage.GetPrimAtPath(path)
