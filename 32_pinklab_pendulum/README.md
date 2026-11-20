@@ -87,7 +87,7 @@ configuration  model_v3_nodisc.usd
 
 - 강의 8 의 Carter 처럼 URDF 에서 가져온 모델임.
 
-## 3. 과제를 적는다
+## 3. 과제를 적음
 
 - `pendulum_env.py` 에 적은 내용임. 코드는 7절에서 읽음.
 
@@ -213,7 +213,7 @@ configuration  model_v3_nodisc.usd
 ~/IsaacLab/isaaclab.sh -p 32_pinklab_pendulum/play.py --headless --num_envs 256 --seconds 8
 ```
 
-### 평가 결과: 모두 섰다
+### 평가 결과: 모두 섰음
 
 ```text
 256대를 매달린 자세에서 8초 동안 돌렸습니다.

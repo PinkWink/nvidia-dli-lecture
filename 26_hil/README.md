@@ -72,7 +72,7 @@ python3 computer_monitor.py
 
 - 따로 설치하는 것 없이 컨테이너에 있는 것만 씀.
 
-### 표준 진단 토픽으로도 나간다
+### 표준 진단 토픽으로도 나감
 
 ```bash
 ros2 topic echo --once /diagnostics

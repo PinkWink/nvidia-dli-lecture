@@ -33,7 +33,7 @@ git pull
 
 - `--no-namespace`: 두 로봇이 강의 14 와 똑같은 토픽 이름을 그대로 씀. 일부러 겹치게 해 보는 것임.
 
-### 결과: 토픽 하나를 두 로봇이 함께 쓴다
+### 결과: 토픽 하나를 두 로봇이 함께 씀
 
 ```text
 $ ros2 topic info /scan
@@ -45,7 +45,7 @@ Subscription count: 2
 - `/scan` 을 내보내는 쪽이 둘임. 받는 쪽은 어느 로봇의 라이다인지 알 수 없음. 주기도 10 Hz 가 아니라 약 20 Hz 로 보임.
 - `/cmd_vel` 을 듣는 쪽도 둘임.
 
-### /cmd_vel 한 번에 두 대가 함께 움직인다
+### /cmd_vel 한 번에 두 대가 함께 움직임
 
 | | 명령 전 (x, y) | `/cmd_vel` 로 0.1 m/s 를 5초 보낸 뒤 |
 |---|---|---|
@@ -57,7 +57,7 @@ Subscription count: 2
 
 ## 2. 네임스페이스
 
-### 토픽 이름 앞에 로봇 이름을 붙인다
+### 토픽 이름 앞에 로봇 이름을 붙임
 
 - `/cmd_vel` → `/pinky1/cmd_vel`, `/pinky2/cmd_vel`. 이름이 다르니 섞이지 않음.
 - `/tf` 도 로봇마다 따로 둠. 그래서 두 로봇이 `odom`, `base_footprint` 같은 프레임 이름을 똑같이 써도 됨.
@@ -176,7 +176,7 @@ ros2 topic pub -r 10 /pinky2/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.1}}
 - 전부 같은 네임스페이스(`pinky1`, `pinky2`)로 띄움. 지도 파일은 둘이 같은 것을 씀.
 - 실행 파일 하나(`35_two_pinkys/two_pinky_nav2.launch.py`)가 이 표를 두 번 반복하고, 끝으로 `start_nav2.py` 를 실행함.
 
-### 설정은 강의 18 것을 그대로, 세 가지만 바꾼다
+### 설정은 강의 18 것을 그대로, 세 가지만 바꿈
 
 ```python
 text = open(PARAMS).read()                                    # 18_pinky_nav2/nav2_params.yaml
@@ -200,13 +200,13 @@ text = f"{name}:\n" + "".join("  " + line for line in text.splitlines(keepends=T
 - 지도는 강의 17 에서 pinky1 의 자리를 원점으로 만들었음. 그래서 pinky1 은 (0, 0) 임.
 - 바꾸는 식: 지도 (x, y) = (도시 Y + 0.5, −도시 X − 1.05), 방향은 90° 를 뺌.
 
-### Nav2 는 "준비 시작" 을 받아야 켜진다
+### Nav2 는 "준비 시작" 을 받아야 켜짐
 
 - Nav2 의 노드들은 뜨기만 해서는 일하지 않음. 관리자(lifecycle_manager)가 노드마다 "설정해라 → 켜라" 를 차례로 보내야 함.
 - 보통은 관리자가 뜨자마자 스스로 이것을 시작함(autostart).
 - 두 대를 띄운 강의 PC 에서는 이 방식이 네 번 모두 실패했음. `Failed to change state for node: …` 가 나오며 멈춤.
 
-### 로그에서 본 것: 너무 일찍 보낸다
+### 로그에서 본 것: 너무 일찍 보냄
 
 ```text
 [map_server]: failed to send response to /pinky2/map_server/change_state (timeout): client will not receive response
@@ -216,7 +216,7 @@ text = f"{name}:\n" + "".join("  " + line for line in text.splitlines(keepends=T
 - 위 로그는 지도 서버가 "응답을 받을 상대를 못 찾아 응답을 버렸다" 는 뜻임. 관리자는 그 응답을 계속 기다림.
 - 왜 이렇게 되는지 그 아래 원인까지는 확인하지 못했음.
 
-### 해결: 받을 준비가 됐는지 확인하고 보낸다
+### 해결: 받을 준비가 됐는지 확인하고 보냄
 
 ```python
 def connected(node, robot, group):
@@ -234,7 +234,7 @@ def connected(node, robot, group):
 - 서비스마다 **서버 1개(노드)와 클라이언트 1개(관리자)** 가 보이는지 셈. 둘 다 보이면 서로 연결된 것임.
 - 정해 둔 시간을 기다리는 것이 아니라, 연결이 실제로 보일 때까지만 기다림.
 
-### 보낸 뒤에도 확인한다
+### 보낸 뒤에도 확인함
 
 ```python
 call(node, manage, ManageLifecycleNodes.Request(command=STARTUP))
@@ -323,7 +323,7 @@ Goal finished with status: SUCCEEDED
 - 두 로봇 모두 가장 짧은 길인 가운데 도로를 골랐음. 5초 간격 기록에서 가장 가까웠을 때 둘 사이는 약 24 cm 였음.
 - 부딪히지 않은 것은 각자의 라이다에 상대가 잡혔기 때문임. 서로 길을 조율한 것이 아님.
 
-### 서로를 장애물로 본다
+### 서로를 장애물로 봄
 
 - 가운데 그림(pinky1 의 RViz2)에서 오른쪽 위 경로가 동그란 덩어리를 돌아감. 출발할 때 그 자리에 서 있던 pinky2 임.
 - 지도에는 없는 물체이므로, pinky1 의 비용 지도는 라이다로 본 pinky2 를 "지금 생긴 장애물" 로 그림.
