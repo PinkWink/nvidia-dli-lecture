@@ -53,7 +53,7 @@ ros2 topic list
 같은 네트워크에 다른 ROS 2 장비가 있어 모르는 토픽이 섞이면, 이 강의에서 여는 모든 터미널에서 먼저:
 
 ```bash
-export ROS_DOMAIN_ID=77
+export ROS_DOMAIN_ID=83
 ```
 
 ## 3. 화면에서 누르는 순서
