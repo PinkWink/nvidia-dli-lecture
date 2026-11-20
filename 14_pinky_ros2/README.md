@@ -1,18 +1,18 @@
 # 14. Pinky Pro 를 ROS 2 로 움직이기: cmd_vel 구독 · teleop — 명령 모음
 
-영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. [13. Pinky Pro 화면과 LED](../13_pinky_lcd_led/README.md) 다음 내용입니다.
+- 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았음. [13. Pinky Pro 화면과 LED](../13_pinky_lcd_led/README.md) 다음 내용임.
 
-강의 7 에서는 Isaac Sim 이 ROS 2 로 **내보내기만** 했습니다. 이번에는 ROS 2 의 속도 명령 `/cmd_vel` 을 **받아서** 로봇을 움직입니다. 실물 Pinky Pro 를 움직이는 것과 같은 토픽입니다 ([공식 저장소](https://github.com/pinklab-art/pinky_pro)).
+- 강의 7 에서는 Isaac Sim 이 ROS 2 로 **내보내기만** 했음. 이번에는 ROS 2 의 속도 명령 `/cmd_vel` 을 **받아서** 로봇을 움직임. 실물 Pinky Pro 를 움직이는 것과 같은 토픽임 ([공식 저장소](https://github.com/pinklab-art/pinky_pro)).
 
 ## 1. 준비
 
-키보드 조종 프로그램을 설치합니다 (한 번만).
+- 키보드 조종 프로그램을 설치함 (한 번만).
 
 ```bash
 sudo apt install -y ros-jazzy-teleop-twist-keyboard
 ```
 
-`source` 를 Isaac Sim 보다 먼저 합니다.
+- `source` 를 Isaac Sim 보다 먼저 함.
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -40,7 +40,7 @@ cd ~/isaacsim
 | 5 | `Make Array` 노드 선택 → Property 의 `+` (Add New Input) | input1 이 생김 |
 | 6 | 노드 사이를 선으로 잇기 | 아래 연결 표 |
 
-노드 10개 (검색어 → 노드 이름):
+- 노드 10개 (검색어 → 노드 이름):
 
 | 검색어 | 노드 | 개수 |
 |---|---|---|
@@ -53,7 +53,7 @@ cd ~/isaacsim
 | `Make Array` | Make Array | 1 |
 | `Articulation Controller` | Articulation Controller | 1 |
 
-연결 (나가는 점을 끌어 들어가는 점에 놓습니다):
+- 연결 (나가는 점을 끌어 들어가는 점에 놓음):
 
 | 나가는 곳 (왼쪽 노드의 오른쪽 점) | 들어가는 곳 (오른쪽 노드의 왼쪽 점) |
 |---|---|
@@ -83,38 +83,38 @@ cd ~/isaacsim
 | 13 | Constant Token (아래) | Value | `r_wheel_joint` |
 | 14 | ROS2 Subscribe Twist | topicName | `cmd_vel` (기본값 그대로) |
 
-`Ctrl` + `S` 로 저장한 뒤 ▶ Play.
+- `Ctrl` + `S` 로 저장한 뒤 ▶ Play.
 
 ## 3. ROS 2 로 움직이기
 
-Isaac Sim 이 ▶ Play 중일 때, 새 터미널에서 합니다.
+- Isaac Sim 이 ▶ Play 중일 때, 새 터미널에서 함.
 
 ```bash
 source /opt/ros/jazzy/setup.bash
 ros2 topic list
 ```
 
-`/cmd_vel` 이 보이면 Isaac Sim 이 듣고 있는 것입니다.
+- `/cmd_vel` 이 보이면 Isaac Sim 이 듣고 있는 것임.
 
-앞으로 (0.1 m/s). `Ctrl` + `C` 로 보내기를 멈춥니다.
+- 앞으로 (0.1 m/s). `Ctrl` + `C` 로 보내기를 멈춤.
 
 ```bash
 ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.1}}"
 ```
 
-정지 (0 을 보내야 멈춥니다).
+- 정지 (0 을 보내야 멈춤).
 
 ```bash
 ros2 topic pub --once /cmd_vel geometry_msgs/msg/Twist "{}"
 ```
 
-제자리에서 왼쪽으로 (1 rad/s).
+- 제자리에서 왼쪽으로 (1 rad/s).
 
 ```bash
 ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{angular: {z: 1.0}}"
 ```
 
-키보드로 조종.
+- 키보드로 조종.
 
 ```bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
@@ -127,11 +127,11 @@ ros2 run teleop_twist_keyboard teleop_twist_keyboard
 | `j` · `l` | 왼쪽 · 오른쪽으로 돌기 |
 | `k` | 정지 |
 
-키는 teleop 을 실행한 터미널을 클릭한 상태에서 누릅니다. 기본 속도 0.5 m/s 는 0.2 m/s 로 잘립니다.
+- 키는 teleop 을 실행한 터미널을 클릭한 상태에서 누름. 기본 속도 0.5 m/s 는 0.2 m/s 로 잘림.
 
 ## 4. 같은 일을 코드로
 
-Isaac Sim 창을 닫은 뒤, 터미널 1:
+- Isaac Sim 창을 닫은 뒤, 터미널 1:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -149,9 +149,9 @@ ROS_DOMAIN_ID = 0. 끝내려면 Ctrl+C 를 누릅니다.
        3    0.000    0.000      0.2
 ```
 
-1초마다 로봇의 위치가 한 줄씩 나옵니다. 터미널 2 에서 3절의 명령을 보내면 숫자가 바뀝니다. 끝낼 때는 `Ctrl` + `C`.
+- 1초마다 로봇의 위치가 한 줄씩 나옴. 터미널 2 에서 3절의 명령을 보내면 숫자가 바뀜. 끝낼 때는 `Ctrl` + `C`.
 
-터미널 2:
+- 터미널 2:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -169,7 +169,7 @@ ros2 topic list -t
 /tf [tf2_msgs/msg/TFMessage]
 ```
 
-강의 PC 측정: `x: 0.1` 을 5초 보내면 0.41 m 전진, `z: 1.0` 을 3초 보내면 176° 회전 (명령이 도착하기까지의 지연 포함). 명령이 없는 동안은 위치 · 방향이 그대로입니다.
+- 강의 PC 측정: `x: 0.1` 을 5초 보내면 0.41 m 전진, `z: 1.0` 을 3초 보내면 176° 회전 (명령이 도착하기까지의 지연 포함). 명령이 없는 동안은 위치 · 방향이 그대로임.
 
 ## 5. 바꿔 보기
 
@@ -196,4 +196,4 @@ ros2 topic list -t
 | 그래프에 `ROS2 ...` 노드가 없음 | `source` 를 하지 않고 Isaac Sim 을 켰음 → 닫고 1절부터 |
 | teleop 키가 안 먹음 | teleop 을 실행한 터미널을 클릭한 뒤 누름 |
 
-다음: Pinky Pro 의 센서와 위치를 ROS 2 로 내보내기 (`/scan` · `/camera/image_raw` · `/imu` · `/odom`) 와 RViz2.
+- 다음: Pinky Pro 의 센서와 위치를 ROS 2 로 내보내기 (`/scan` · `/camera/image_raw` · `/imu` · `/odom`) 와 RViz2.

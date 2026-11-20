@@ -1,10 +1,10 @@
 # 7. ROS 2 로 데이터 보내기: LaserScan · 카메라 · RViz2 — 명령 모음
 
-영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. [6. 센서 달기](../06_sensors/README.md) 다음 내용입니다.
+- 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았음. [6. 센서 달기](../06_sensors/README.md) 다음 내용임.
 
 ## 1. ROS 2 Jazzy 설치
 
-이미 설치되어 있으면 건너뜁니다 (`ls /opt/ros/jazzy` 에 파일이 보이면 설치된 것).
+- 이미 설치되어 있으면 건너뜀 (`ls /opt/ros/jazzy` 에 파일이 보이면 설치된 것).
 
 ```bash
 sudo apt install -y software-properties-common curl
@@ -21,25 +21,25 @@ sudo apt install -y ros-jazzy-desktop
 
 ### 확인
 
-터미널 1:
+- 터미널 1:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
 ros2 run demo_nodes_cpp talker
 ```
 
-터미널 2:
+- 터미널 2:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
 ros2 run demo_nodes_py listener
 ```
 
-터미널 2 에 `I heard: [Hello World: N]` 이 나오면 됩니다. 둘 다 `Ctrl` + `C` 로 멈춥니다.
+- 터미널 2 에 `I heard: [Hello World: N]` 이 나오면 됨. 둘 다 `Ctrl` + `C` 로 멈춤.
 
 ## 2. ROS 2 와 함께 Isaac Sim 열기
 
-`source` 를 Isaac Sim 보다 먼저 합니다.
+- `source` 를 Isaac Sim 보다 먼저 함.
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -50,7 +50,7 @@ ros2 topic list
 - `File > Open Recent` → `simple_robot.usd`
 - `Window > Extensions` → 검색칸에 `ros2` → `isaacsim.ros2.bridge` 가 켜져 있는지 확인
 
-같은 네트워크에 다른 ROS 2 장비가 있어 모르는 토픽이 섞이면, 이 강의에서 여는 모든 터미널에서 먼저:
+- 같은 네트워크에 다른 ROS 2 장비가 있어 모르는 토픽이 섞이면, 이 강의에서 여는 모든 터미널에서 먼저:
 
 ```bash
 export ROS_DOMAIN_ID=83
@@ -58,7 +58,7 @@ export ROS_DOMAIN_ID=83
 
 ## 3. 화면에서 누르는 순서
 
-모두 ■ Stop 상태에서 합니다.
+- 모두 ■ Stop 상태에서 함.
 
 ### 라이다 → LaserScan
 
@@ -92,7 +92,7 @@ export ROS_DOMAIN_ID=83
 
 ## 4. 토픽 확인 (새 터미널)
 
-Isaac Sim 이 ▶ Play 중이어야 합니다.
+- Isaac Sim 이 ▶ Play 중이어야 함.
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -101,7 +101,7 @@ ros2 topic hz /scan_lidar
 ros2 topic echo /scan_lidar --once --no-arr
 ```
 
-`ros2 topic hz` 는 `Ctrl` + `C` 로 멈춥니다.
+- `ros2 topic hz` 는 `Ctrl` + `C` 로 멈춤.
 
 ## 5. RViz2
 
@@ -116,7 +116,7 @@ rviz2
 | 2 | Add → By topic → `/scan_lidar` → LaserScan → OK, Size (m) | `0.05` |
 | 3 | Add → By topic → `/rgb` → Image → OK | |
 
-저장소의 설정 파일로 한 번에 열 수도 있습니다.
+- 저장소의 설정 파일로 한 번에 열 수도 있음.
 
 ```bash
 rviz2 -d ~/nvidia-dli-lecture/07_ros2/rviz/simple_robot.rviz
@@ -124,9 +124,9 @@ rviz2 -d ~/nvidia-dli-lecture/07_ros2/rviz/simple_robot.rviz
 
 ## 6. 같은 것을 코드로
 
-Isaac Sim 창을 닫은 뒤 실행합니다.
+- Isaac Sim 창을 닫은 뒤 실행함.
 
-터미널 1:
+- 터미널 1:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -140,7 +140,7 @@ git pull
 끝내려면 Ctrl+C 를 누릅니다.
 ```
 
-터미널 2:
+- 터미널 2:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -174,7 +174,7 @@ source /opt/ros/jazzy/setup.bash
 ~/isaacsim/python.sh 07_ros2/publish_ros2.py --keyboard
 ```
 
-Isaac Sim 창의 뷰포트를 클릭한 뒤 W · A · S · D. RViz2 의 점과 영상이 함께 움직입니다.
+- Isaac Sim 창의 뷰포트를 클릭한 뒤 W · A · S · D. RViz2 의 점과 영상이 함께 움직임.
 
 ## 막힐 때
 
@@ -182,7 +182,7 @@ Isaac Sim 창의 뷰포트를 클릭한 뒤 W · A · S · D. RViz2 의 점과 �
 |---|---|
 | `ros2: command not found` | 이 터미널에서 `source /opt/ros/jazzy/setup.bash` |
 | `ROS 2 환경이 없습니다` (publish_ros2.py) | 같은 터미널에서 `source /opt/ros/jazzy/setup.bash` 를 먼저 실행 |
-| `source` 에서 `setup.sh` 를 못 찾는다는 오류 | 셸이 zsh 입니다. `source /opt/ros/jazzy/setup.zsh` 를 씁니다 |
+| `source` 에서 `setup.sh` 를 못 찾는다는 오류 | 셸이 zsh 임. `source /opt/ros/jazzy/setup.zsh` 를 씀 |
 | `ros2 topic list` 에 `/scan_lidar` 가 없음 | Isaac Sim 이 ▶ Play 중인지, 두 터미널의 `ROS_DOMAIN_ID` 가 같은지 확인 |
 | RViz2 에 점이 안 보임 | Fixed Frame 이 `sim_lidar` 인지 확인 |
 | 점이 로봇 바로 옆에 동그랗게 찍힘 | 라이다가 바퀴를 보고 있음 → Lidar 의 Translate Z 를 더 위로 |

@@ -1,6 +1,6 @@
 # 9. 가져온 로봇 몰기: 바닥 · 관절 · 차동 제어기 · 속도 제한 — 명령 모음
 
-영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. [8. URDF 로봇 가져오기](../08_urdf_import/README.md) 다음 내용입니다.
+- 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았음. [8. URDF 로봇 가져오기](../08_urdf_import/README.md) 다음 내용임.
 
 ## 1. 준비
 
@@ -55,11 +55,11 @@ cd ~/isaacsim
 | Left Joint Name | `right_wheel` |
 | Use Keyboard Control (WASD) | 체크 |
 
-**주의 (Isaac Sim 5.1)**: Right 칸에 `left_wheel`, Left 칸에 `right_wheel` 을 넣습니다. 칸 이름대로 넣으면 회전 방향이 반대가 됩니다 (강의 5 와 같은 문제).
+- **주의 (Isaac Sim 5.1)**: Right 칸에 `left_wheel`, Left 칸에 `right_wheel` 을 넣음. 칸 이름대로 넣으면 회전 방향이 반대가 됨 (강의 5 와 같은 문제).
 
 ## 3. 같은 주행을 코드로
 
-Isaac Sim 창을 닫은 뒤 실행합니다.
+- Isaac Sim 창을 닫은 뒤 실행함.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -80,7 +80,7 @@ git pull
 결과: v = 0.5 m/s, ω = 0 rad/s 로 3초 → 위치 (1.43, 0.00) m, 방향 +0.2°.
 ```
 
-바퀴 명령 2.08 rad/s = 0.5 m/s ÷ 바퀴 반지름 0.24 m.
+- 바퀴 명령 2.08 rad/s = 0.5 m/s ÷ 바퀴 반지름 0.24 m.
 
 ## 4. 바퀴 속도를 직접 주기
 
@@ -128,7 +128,7 @@ git pull
 ~/isaacsim/python.sh 09_carter_drive/drive_carter.py --keyboard
 ```
 
-창이 뜨면 뷰포트를 한 번 클릭한 뒤 W · A · S · D. 창을 닫으면 끝납니다.
+- 창이 뜨면 뷰포트를 한 번 클릭한 뒤 W · A · S · D. 창을 닫으면 끝남.
 
 ## 막힐 때
 
@@ -153,4 +153,4 @@ git pull
 | `--gui` | 창을 띄움 |
 | `--save USD` | Play 전 장면을 저장 |
 
-다음: [10. 가져온 로봇에 센서 달기 · Nova Carter](../10_carter_sensors/README.md)
+- 다음: [10. 가져온 로봇에 센서 달기 · Nova Carter](../10_carter_sensors/README.md)

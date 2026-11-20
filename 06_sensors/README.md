@@ -1,6 +1,6 @@
 # 6. 센서 달기: 카메라 · 2D 라이다 — 명령 모음
 
-영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. [5. 로봇 조종](../05_control/README.md) 다음 내용입니다.
+- 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았음. [5. 로봇 조종](../05_control/README.md) 다음 내용임.
 
 ## 1. 준비
 
@@ -13,7 +13,7 @@ cd ~/isaacsim
 
 ## 2. 화면에서 누르는 순서
 
-모두 ■ Stop 상태에서 합니다.
+- 모두 ■ Stop 상태에서 함.
 
 ### 센서 자리
 
@@ -38,7 +38,7 @@ cd ~/isaacsim
 | 12 | 뷰포트 위 `Perspective > Cameras > Robot_Camera` | 로봇 카메라 시점 |
 | 13 | `Window > Viewports > Viewport 2` → Viewport 2 를 Robot_Camera 로 | 두 화면 보기 |
 
-영상에서 쓴 장애물 위치:
+- 영상에서 쓴 장애물 위치:
 
 | 이름 | 모양 | Translate |
 |---|---|---|
@@ -61,7 +61,7 @@ cd ~/isaacsim
 
 ## 3. 같은 센서를 코드로
 
-Isaac Sim 창을 닫은 뒤 실행합니다.
+- Isaac Sim 창을 닫은 뒤 실행함.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -81,7 +81,7 @@ git pull
 결과: 라이다가 장애물을 봅니다.
 ```
 
-카메라 사진은 `work/robot_camera.png` 에 저장됩니다. 파일 관리자에서 열어 봅니다.
+- 카메라 사진은 `work/robot_camera.png` 에 저장됨. 파일 관리자에서 열어 봄.
 
 ## 4. 충돌체를 빼 보기
 
@@ -110,4 +110,4 @@ git pull
 | `--gui` | 창을 띄움 | |
 | `--save USD` | Play 전 장면을 파일로 저장 | |
 
-다음: [7. ROS 2 로 데이터 보내기](../07_ros2/README.md)
+- 다음: [7. ROS 2 로 데이터 보내기](../07_ros2/README.md)

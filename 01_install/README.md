@@ -1,6 +1,6 @@
 # 1. Isaac Sim 5.1 설치 — 명령 모음
 
-영상에서 입력하는 터미널 명령을 순서대로 모았습니다. 한 줄씩 복사해 붙여 넣으세요.
+- 영상에서 입력하는 터미널 명령을 순서대로 모았음. 한 줄씩 복사해 붙여 넣을 것.
 
 - 터미널 열기: `Ctrl` + `Alt` + `T`
 - 터미널에 붙여 넣기: `Ctrl` + `Shift` + `V`
@@ -17,7 +17,7 @@ name, driver_version, memory.total [MiB]
 NVIDIA GeForce RTX 5060 Ti, 580.126.16, 16311 MiB
 ```
 
-`driver_version` 이 580 이상이면 통과입니다.
+- `driver_version` 이 580 이상이면 통과임.
 
 ### 드라이버 설치 (580 보다 낮거나 `command not found` 일 때만)
 
@@ -27,7 +27,7 @@ sudo apt install -y nvidia-driver-580-open
 sudo reboot
 ```
 
-RTX 50 시리즈는 반드시 `-open` 이 붙은 드라이버를 씁니다.
+- RTX 50 시리즈는 반드시 `-open` 이 붙은 드라이버를 씀.
 
 ## 2. 예제 코드 받기
 
@@ -62,11 +62,11 @@ bash 01_install/check_env.sh
 결과: 진행해도 됩니다.
 ```
 
-`[실패]` 가 없으면 다음으로 넘어갑니다. 설치 전이라 4번의 `[주의]` 는 정상입니다.
+- `[실패]` 가 없으면 다음으로 넘어감. 설치 전이라 4번의 `[주의]` 는 정상임.
 
 ## 4. Isaac Sim 내려받기 · 풀기
 
-방법 A 와 B 중 하나만 합니다.
+- 방법 A 와 B 중 하나만 함.
 
 ### 방법 A: 스크립트로 한 번에
 
@@ -75,7 +75,7 @@ cd ~/nvidia-dli-lecture
 bash 01_install/install_isaacsim.sh
 ```
 
-내려받기 8.8 GB, 풀면 약 17 GB 입니다. 중간에 끊기면 같은 명령을 다시 실행합니다 (이어받습니다).
+- 내려받기 8.8 GB, 풀면 약 17 GB 임. 중간에 끊기면 같은 명령을 다시 실행함 (이어받음).
 
 ### 방법 B: 한 줄씩 직접
 
@@ -85,7 +85,7 @@ wget -c https://downloads.isaacsim.nvidia.com/isaac-sim-standalone-5.1.0-linux-x
 ls -l isaac-sim-standalone-5.1.0-linux-x86_64.zip
 ```
 
-크기가 `8768419777` 이면 끝까지 받은 것입니다. 작으면 `wget -c` 줄을 다시 실행합니다.
+- 크기가 `8768419777` 이면 끝까지 받은 것임. 작으면 `wget -c` 줄을 다시 실행함.
 
 ```bash
 mkdir -p ~/isaacsim
@@ -95,7 +95,7 @@ cd ~/isaacsim
 ./post_install.sh
 ```
 
-`VERSION` 이 `5.1.0` 으로 시작하면 맞습니다.
+- `VERSION` 이 `5.1.0` 으로 시작하면 맞음.
 
 ## 5. 설치 위치 확인
 
@@ -103,7 +103,7 @@ cd ~/isaacsim
 bash ~/nvidia-dli-lecture/01_install/check_env.sh
 ```
 
-4번이 `[통과] /home/<내 이름>/isaacsim (버전 5.1.0)` 으로 바뀌면 설치가 끝난 것입니다.
+- 4번이 `[통과] /home/<내 이름>/isaacsim (버전 5.1.0)` 으로 바뀌면 설치가 끝난 것임.
 
 ## 6. 호환성 검사
 
@@ -112,7 +112,7 @@ cd ~/isaacsim
 ./isaac-sim.compatibility_check.sh
 ```
 
-약 3분 걸립니다. 마지막 줄이 `System checking result: PASSED` 면 통과입니다. 함께 뜨는 창은 `CLOSE` 로 닫습니다.
+- 약 3분 걸림. 마지막 줄이 `System checking result: PASSED` 면 통과임. 함께 뜨는 창은 `CLOSE` 로 닫음.
 
 ## 7. 설치 확인 (실제로 켜 보기)
 
@@ -136,7 +136,7 @@ bash 01_install/verify_install.sh
 결과: 설치가 정상입니다.
 ```
 
-마지막 줄이 `결과: 설치가 정상입니다.` 면 끝입니다. `[실패]` 가 있으면 그 줄의 안내를 따릅니다.
+- 마지막 줄이 `결과: 설치가 정상입니다.` 면 끝임. `[실패]` 가 있으면 그 줄의 안내를 따름.
 
 ## 막힐 때
 
@@ -148,4 +148,4 @@ bash 01_install/verify_install.sh
 | `No space left on device` | `df -h ~` 로 확인. 설치가 끝난 zip 은 `~/Downloads` 에서 지워도 됨 |
 | `unzip` 이 `replace ...?` 를 물음 | `A` → `Enter` |
 
-다음: [2. Isaac Sim 실행과 화면 구성](../02_launch/README.md)
+- 다음: [2. Isaac Sim 실행과 화면 구성](../02_launch/README.md)

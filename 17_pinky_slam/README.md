@@ -1,8 +1,8 @@
 # 17. 핑크시티 지도 만들기: slam_toolbox — 명령 모음
 
-Pinky Pro 로 핑크시티를 돌아다니며 라이다로 지도를 만들고 저장합니다. [16. 핑크시티 만들기](../16_pink_city/README.md) 다음 내용입니다.
+- Pinky Pro 로 핑크시티를 돌아다니며 라이다로 지도를 만들고 저장함. [16. 핑크시티 만들기](../16_pink_city/README.md) 다음 내용임.
 
-도로는 바닥 그림이라 라이다에 잡히지 않습니다. 이 강의의 지도에는 벽 · 건물 · 나무만 나옵니다.
+- 도로는 바닥 그림이라 라이다에 잡히지 않음. 이 강의의 지도에는 벽 · 건물 · 나무만 나옴.
 
 ## 1. 준비 (한 번만)
 
@@ -10,7 +10,7 @@ Pinky Pro 로 핑크시티를 돌아다니며 라이다로 지도를 만들고 �
 sudo apt install ros-jazzy-slam-toolbox ros-jazzy-navigation2 ros-jazzy-nav2-bringup ros-jazzy-teleop-twist-keyboard
 ```
 
-터미널이 5개 필요합니다. 모든 터미널에서 먼저 `source /opt/ros/jazzy/setup.bash` 를 합니다. 같은 네트워크에 다른 ROS 2 장비가 있으면 이어서 `export ROS_DOMAIN_ID=83` 처럼 같은 번호를 정해 둡니다.
+- 터미널이 5개 필요함. 모든 터미널에서 먼저 `source /opt/ros/jazzy/setup.bash` 를 함. 같은 네트워크에 다른 ROS 2 장비가 있으면 이어서 `export ROS_DOMAIN_ID=83` 처럼 같은 번호를 정해 둠.
 
 ## 2. 터미널 1: 핑크시티 + Pinky Pro
 
@@ -45,14 +45,14 @@ rviz2 -d ~/nvidia-dli-lecture/17_pinky_slam/rviz/slam.rviz --ros-args -p use_sim
 
 ## 6. 터미널 5: 로봇 몰기
 
-손으로:
+- 손으로:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
 ros2 run teleop_twist_keyboard teleop_twist_keyboard
 ```
 
-또는 자동으로 한 바퀴 (약 100초):
+- 또는 자동으로 한 바퀴 (약 100초):
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -68,7 +68,7 @@ python3 ~/nvidia-dli-lecture/17_pinky_slam/drive_city.py
 
 ## 7. 지도 저장
 
-터미널 5 에서 (slam_toolbox 는 켜 둔 채로):
+- 터미널 5 에서 (slam_toolbox 는 켜 둔 채로):
 
 ```bash
 ros2 run nav2_map_server map_saver_cli -f ~/nvidia-dli-lecture/work/pink_city/pink_city_map --ros-args -p use_sim_time:=true
@@ -92,11 +92,11 @@ occupied_thresh: 0.65
 free_thresh: 0.196
 ```
 
-`pink_city_map.pgm`(그림) 과 `pink_city_map.yaml`(설명) 두 파일이 생깁니다. `origin` 의 숫자는 주행에 따라 조금씩 다릅니다.
+- `pink_city_map.pgm`(그림) 과 `pink_city_map.yaml`(설명) 두 파일이 생김. `origin` 의 숫자는 주행에 따라 조금씩 다름.
 
 ## 공식 설정에서 바꾼 값
 
-`17_pinky_slam/mapper_params.yaml` 은 [공식 저장소](https://github.com/pinklab-art/pinky_pro)의 `pinky_navigation/params/mapper_params.yaml` 에서 출발해 작은 도시에 맞게 고쳤습니다.
+- `17_pinky_slam/mapper_params.yaml` 은 [공식 저장소](https://github.com/pinklab-art/pinky_pro)의 `pinky_navigation/params/mapper_params.yaml` 에서 출발해 작은 도시에 맞게 고쳤음.
 
 | 값 | 공식 설정 | 이 강의 | 이유 |
 |---|---|---|---|

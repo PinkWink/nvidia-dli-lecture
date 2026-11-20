@@ -1,6 +1,6 @@
 # 2. Isaac Sim 실행과 화면 구성 — 명령 모음
 
-영상에서 입력하는 터미널 명령을 순서대로 모았습니다. [1. 설치](../01_install/README.md) 를 마친 상태에서 시작합니다.
+- 영상에서 입력하는 터미널 명령을 순서대로 모았음. [1. 설치](../01_install/README.md) 를 마친 상태에서 시작함.
 
 ## 1. Isaac Sim 실행
 
@@ -9,9 +9,9 @@ cd ~/isaacsim
 ./isaac-sim.sh
 ```
 
-- 첫 실행은 셰이더 캐시를 만드느라 5~10분 걸립니다. 창이 회색이어도 기다립니다. "응답 없음" 창이 뜨면 `기다리기(Wait)` 를 누릅니다.
-- 가운데 화면에 격자와 좌표축이 보이면 성공입니다.
-- 실행한 터미널을 닫으면 Isaac Sim 도 꺼집니다.
+- 첫 실행은 셰이더 캐시를 만드느라 5~10분 걸림. 창이 회색이어도 기다림. "응답 없음" 창이 뜨면 `기다리기(Wait)` 를 누름.
+- 가운데 화면에 격자와 좌표축이 보이면 성공임.
+- 실행한 터미널을 닫으면 Isaac Sim 도 꺼짐.
 - 끄기: 창 닫기 또는 터미널에서 `Ctrl` + `C`.
 
 ## 2. 실행 파일 세 가지
@@ -35,7 +35,7 @@ cd ~/isaacsim
 
 ## 4. Python 으로 켜기
 
-Isaac Sim 창을 닫은 뒤 실행합니다.
+- Isaac Sim 창을 닫은 뒤 실행함.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -49,7 +49,7 @@ Kit 버전       : 107.3.3+production.229672.69cbf6ad.gl
 길이 단위      : 1.0 m
 ```
 
-앞뒤로 `[Warning]` 등 많은 로그가 함께 나옵니다. 정상입니다.
+- 앞뒤로 `[Warning]` 등 많은 로그가 함께 나옴. 정상임.
 
 ### 창을 띄워서 켜기
 
@@ -57,7 +57,7 @@ Kit 버전       : 107.3.3+production.229672.69cbf6ad.gl
 ~/isaacsim/python.sh 02_launch/hello_isaacsim.py --gui
 ```
 
-창을 닫으면 스크립트도 끝납니다.
+- 창을 닫으면 스크립트도 끝남.
 
 ## 막힐 때
 
@@ -67,4 +67,4 @@ Kit 버전       : 107.3.3+production.229672.69cbf6ad.gl
 | 켜지다가 꺼짐 · 화면이 깨짐 | `cd ~/isaacsim && ./clear_caches.sh` 후 다시 실행 |
 | `ModuleNotFoundError: No module named 'isaacsim'` | `python3` 가 아니라 `~/isaacsim/python.sh` 로 실행 |
 
-다음: [3. 첫 장면](../03_first_scene/README.md)
+- 다음: [3. 첫 장면](../03_first_scene/README.md)

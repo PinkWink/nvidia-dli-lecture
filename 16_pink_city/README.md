@@ -1,10 +1,10 @@
 # 16. 핑크시티 만들기: Pinky Pro 가 다니는 작은 도시 — 명령 모음
 
-Pinky Pro 가 돌아다닐 3 × 3 m 의 작은 도시 **City of Pink (핑크시티)** 를 코드로 만듭니다. 다음 강의들(지도 만들기 · 자율주행)의 무대입니다. [15. Pinky Pro 의 센서와 위치를 ROS 2 로 내보내기](../15_pinky_ros2_topics/README.md) 다음 내용입니다.
+- Pinky Pro 가 돌아다닐 3 × 3 m 의 작은 도시 **City of Pink (핑크시티)** 를 코드로 만듦. 다음 강의들(지도 만들기 · 자율주행)의 무대임. [15. Pinky Pro 의 센서와 위치를 ROS 2 로 내보내기](../15_pinky_ros2_topics/README.md) 다음 내용임.
 
 ## 1. 준비
 
-강의 11 의 준비(`bash 11_pinky_import/prepare_pinky.sh`)가 되어 있어야 합니다. 로봇 URDF 와 핑크랩 로고 그림([공식 저장소](https://github.com/pinklab-art/pinky_pro)의 `pinklab_logo.png`)을 거기서 가져옵니다.
+- 강의 11 의 준비(`bash 11_pinky_import/prepare_pinky.sh`)가 되어 있어야 함. 로봇 URDF 와 핑크랩 로고 그림([공식 저장소](https://github.com/pinklab-art/pinky_pro)의 `pinklab_logo.png`)을 거기서 가져옴.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -25,7 +25,7 @@ git pull
 ...
 ```
 
-`work/pink_city/` 에 바닥 · 간판 그림(`floor.png`, `sign_*.png` …), 사진 7장, 장면 파일이 생깁니다.
+- `work/pink_city/` 에 바닥 · 간판 그림(`floor.png`, `sign_*.png` …), 사진 7장, 장면 파일이 생김.
 
 ## 3. 창으로 보기 · 키보드로 몰기
 
@@ -34,7 +34,7 @@ git pull
 ~/isaacsim/python.sh 16_pink_city/pink_city.py --robot --gui    # Pinky Pro 를 올려 W A S D 로 운전
 ```
 
-뷰포트를 한 번 클릭한 뒤 W(앞) S(뒤) A(왼쪽) D(오른쪽). 창을 닫으면 끝납니다.
+- 뷰포트를 한 번 클릭한 뒤 W(앞) S(뒤) A(왼쪽) D(오른쪽). 창을 닫으면 끝남.
 
 ## 4. ROS 2 에 연결해서 열기
 
@@ -43,7 +43,7 @@ source /opt/ros/jazzy/setup.bash
 ~/isaacsim/python.sh 16_pink_city/pink_city.py --ros2 --gui
 ```
 
-강의 14 · 15 의 그래프가 붙습니다: `/cmd_vel` 받기, `/scan` · `/odom` · `/tf` · `/joint_states` · `/camera/image_raw` · `/imu` · `/clock` 내보내기. 다음 강의부터 이 명령으로 시작합니다.
+- 강의 14 · 15 의 그래프가 붙음: `/cmd_vel` 받기, `/scan` · `/odom` · `/tf` · `/joint_states` · `/camera/image_raw` · `/imu` · `/clock` 내보내기. 다음 강의부터 이 명령으로 시작함.
 
 ## 도시의 치수
 
@@ -69,20 +69,20 @@ source /opt/ros/jazzy/setup.bash
 
 | 옵션 | 뜻 |
 |---|---|
-| `--gui` | 창을 띄운다 |
-| `--robot` | Pinky Pro 를 올린다 (키보드 운전) |
-| `--ros2` | Pinky Pro 를 올리고 ROS 2 에 연결한다 |
+| `--gui` | 창을 띄움 |
+| `--robot` | Pinky Pro 를 올림 (키보드 운전) |
+| `--ros2` | Pinky Pro 를 올리고 ROS 2 에 연결함 |
 | `--seconds N` | `--ros2` 로 창 없이 돌릴 때 N 초 뒤 끝냄 |
 | `--start X Y YAW` | 로봇의 시작 위치 [m] 와 방향 [도]. 기본 `-1.05 -0.5 90` (강의 21 에서 사용) |
-| `--hide-lidar` | 창에서 라이다 빔을 그리지 않는다 (강의 21 에서 사용) |
-| `--save 파일.usd` | 만든 장면을 저장한다 |
+| `--hide-lidar` | 창에서 라이다 빔을 그리지 않음 (강의 21 에서 사용) |
+| `--save 파일.usd` | 만든 장면을 저장함 |
 | `--photo 폴더` | 사진을 저장할 폴더 (기본 `work/pink_city`) |
 
 ## 막힐 때
 
 | 증상 | 해결 |
 |---|---|
-| "핑크랩 로고 그림을 찾지 못해 글씨만 넣었습니다" | `bash 11_pinky_import/prepare_pinky.sh` 를 먼저 실행 |
+| "핑크랩 로고 그림을 찾지 못해 글씨만 넣었음" | `bash 11_pinky_import/prepare_pinky.sh` 를 먼저 실행 |
 | `--robot` 에서 URDF 가 없다고 나옴 | 위와 같음 |
-| `--ros2` 에서 "ROS 2 환경이 없습니다" | 같은 터미널에서 `source /opt/ros/jazzy/setup.bash` |
+| `--ros2` 에서 "ROS 2 환경이 없음" | 같은 터미널에서 `source /opt/ros/jazzy/setup.bash` |
 | 간판 글씨가 작고 각져 보임 | DejaVu 글꼴이 없는 경우. `sudo apt install fonts-dejavu-core` |

@@ -1,10 +1,10 @@
 # 20. 도로를 알아보는 모델 학습: 세그먼테이션 — 명령 모음
 
-강의 19 에서 모은 영상 400장으로, 카메라 영상의 픽셀마다 "도로 · 중앙선 · 보도 …" 를 맞히는 모델을 학습합니다. PyTorch 는 Isaac Sim 에 들어 있는 것을 쓰므로 따로 설치하지 않습니다. [19. 도로 인식 데이터 모으기](../19_road_dataset/README.md) 다음 내용입니다.
+- 강의 19 에서 모은 영상 400장으로, 카메라 영상의 픽셀마다 "도로 · 중앙선 · 보도 …" 를 맞히는 모델을 학습함. PyTorch 는 Isaac Sim 에 들어 있는 것을 쓰므로 따로 설치하지 않음. [19. 도로 인식 데이터 모으기](../19_road_dataset/README.md) 다음 내용임.
 
 ## 1. 준비
 
-`work/road_dataset` 이 있어야 합니다 (강의 19).
+- `work/road_dataset` 이 있어야 함 (강의 19).
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -26,7 +26,7 @@ images  masks  poses.csv  preview  train.txt  val.txt
 2.7.0+cu128 True
 ```
 
-`True` = GPU 로 학습할 수 있습니다. `False` 여도 CPU 로 학습은 되지만 훨씬 오래 걸립니다.
+- `True` = GPU 로 학습할 수 있음. `False` 여도 CPU 로 학습은 되지만 훨씬 오래 걸림.
 
 ## 3. 학습
 
@@ -56,7 +56,7 @@ images  masks  poses.csv  preview  train.txt  val.txt
 저장: .../work/road_model/road_seg.pt, road_seg.onnx (2.0 MB), training.png, predictions.png
 ```
 
-강의 PC(RTX 5060 Ti)에서 약 1분. 시뮬레이터 창은 뜨지 않습니다 (`python.sh` 를 파이썬 실행기로만 씀). 숫자는 PC 마다 조금씩 다를 수 있습니다.
+- 강의 PC(RTX 5060 Ti)에서 약 1분. 시뮬레이터 창은 뜨지 않음 (`python.sh` 를 파이썬 실행기로만 씀). 숫자는 PC 마다 조금씩 다를 수 있음.
 
 ## 4. ONNX 모델을 Isaac Sim 밖에서 돌려 보기
 
@@ -75,7 +75,7 @@ OpenCV 4.6.0 로 40장 추론: 한 장에 12 ms (CPU)
 비교 그림 저장: .../work/road_model/onnx_check.png
 ```
 
-시스템 파이썬(ROS 2 가 쓰는 파이썬)과 OpenCV 만으로 같은 정확도가 나오면, 다음 강의의 ROS 2 노드에서 쓸 준비가 된 것입니다.
+- 시스템 파이썬(ROS 2 가 쓰는 파이썬)과 OpenCV 만으로 같은 정확도가 나오면, 다음 강의의 ROS 2 노드에서 쓸 준비가 된 것임.
 
 ## 만들어지는 것 (`work/road_model`)
 
@@ -100,7 +100,7 @@ OpenCV 4.6.0 로 40장 추론: 한 장에 12 ms (CPU)
 
 | 증상 | 해결 |
 |---|---|
-| "데이터가 없습니다" | 강의 19 의 `collect_dataset.py` 를 먼저 실행 |
+| "데이터가 없음" | 강의 19 의 `collect_dataset.py` 를 먼저 실행 |
 | `CUDA out of memory` | `--batch 8` |
 | 중앙선 IoU 가 0.5 아래 | `--epochs 60`, 또는 데이터를 1000장으로 (`collect_dataset.py --count 1000`) |
 | `check_onnx.py` 에서 `No module named 'cv2'` | `sudo apt install python3-opencv` |

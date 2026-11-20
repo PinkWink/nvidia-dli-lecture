@@ -1,6 +1,6 @@
 # 25. Isaac Sim 카메라로 Isaac ROS 사람 분할: SIL — 명령 모음
 
-영상에서 입력하는 터미널 명령과 기대 출력을 순서대로 모았습니다. [24. Isaac ROS 준비](../24_isaac_ros/README.md) 다음 내용입니다.
+- 영상에서 입력하는 터미널 명령과 기대 출력을 순서대로 모았음. [24. Isaac ROS 준비](../24_isaac_ros/README.md) 다음 내용임.
 
 | 파일 | 내용 |
 |---|---|
@@ -14,7 +14,7 @@
 isaac-ros activate
 ```
 
-- 강의 24 뒤에 컨테이너를 닫았다면 패키지를 다시 설치합니다 (강의 24 의 6절). `model.plan` 은 남아 있습니다.
+- 강의 24 뒤에 컨테이너를 닫았다면 패키지를 다시 설치함 (강의 24 의 6절). `model.plan` 은 남아 있음.
 
 ```bash
 sudo apt-get update
@@ -30,7 +30,7 @@ cd ~/isaacsim
 ./isaac-sim.sh
 ```
 
-- 강의 7 과 같은 방법입니다. ROS 2 를 먼저 `source` 하고 켜야 Isaac Sim 이 토픽을 내보냅니다.
+- 강의 7 과 같은 방법임. ROS 2 를 먼저 `source` 하고 켜야 Isaac Sim 이 토픽을 내보냄.
 
 ## 2. 예제 장면 열기
 
@@ -44,12 +44,12 @@ cd ~/isaacsim
 
 ### Load Sample Scene
 
-- 처음에는 창고 자료를 인터넷에서 받느라 오래 걸립니다. 아래 상태 줄의 진행이 멈출 때까지 기다립니다.
+- 처음에는 창고 자료를 인터넷에서 받느라 오래 걸림. 아래 상태 줄의 진행이 멈출 때까지 기다림.
 
 ### 창고, 지게차, 작업자 두 명, 로봇
 
-- Stage 에 `Worker`, `Worker_2` (사람)와 `Nova_Carter_ROS` (로봇)가 있습니다.
-- 이 로봇에는 카메라 · 라이다 · IMU 를 ROS 2 로 내보내는 그래프가 이미 들어 있습니다. 강의 15 에서 Pinky Pro 에 손으로 만든 것과 같은 종류입니다.
+- Stage 에 `Worker`, `Worker_2` (사람)와 `Nova_Carter_ROS` (로봇)가 있음.
+- 이 로봇에는 카메라 · 라이다 · IMU 를 ROS 2 로 내보내는 그래프가 이미 들어 있음. 강의 15 에서 Pinky Pro 에 손으로 만든 것과 같은 종류임.
 
 ## 3. Play 와 토픽 확인
 
@@ -91,8 +91,8 @@ ros2 topic list
 /tf
 ```
 
-- 컨테이너 안에서 Isaac Sim 의 토픽이 보입니다. 컨테이너가 내 PC 의 네트워크를 그대로 쓰기 때문입니다.
-- 영상 분할에 넣을 토픽은 `/front_stereo_camera/left/image_rect_color` 입니다. 앞 카메라의 왼쪽 영상이고 크기는 1920 × 1200 입니다.
+- 컨테이너 안에서 Isaac Sim 의 토픽이 보임. 컨테이너가 내 PC 의 네트워크를 그대로 쓰기 때문임.
+- 영상 분할에 넣을 토픽은 `/front_stereo_camera/left/image_rect_color` 임. 앞 카메라의 왼쪽 영상이고 크기는 1920 × 1200 임.
 
 ## 4. 영상 분할 실행 (터미널 1)
 
@@ -102,7 +102,7 @@ ros2 launch isaac_ros_unet isaac_ros_unet_tensor_rt_isaac_sim.launch.py \
     input_binding_names:=['input_1:0']
 ```
 
-- 강의 24 와 같은 `model.plan` 입니다. 이 launch 파일은 위의 카메라 토픽을 받도록 정해져 있습니다.
+- 강의 24 와 같은 `model.plan` 임. 이 launch 파일은 위의 카메라 토픽을 받도록 정해져 있음.
 
 ### 떠 있는 노드 (새 터미널에서 isaac-ros activate 뒤)
 
@@ -123,7 +123,7 @@ ros2 node list
 /unet_inference
 ```
 
-- 강의 24 의 그림 그대로 인코더, 추론, 디코더입니다.
+- 강의 24 의 그림 그대로 인코더, 추론, 디코더임.
 
 ## 5. 결과 보기 (터미널 3, 컨테이너 안)
 
@@ -134,11 +134,11 @@ ros2 run rqt_image_view rqt_image_view /front_stereo_camera/left/image_rect_colo
 
 ### 로봇 카메라 영상
 
-- 두 작업자가 겹쳐 서 있습니다.
+- 두 작업자가 겹쳐 서 있음.
 
 ### 왼쪽 위 칸을 /unet/colored_segmentation_mask 로
 
-- 빨강이 사람입니다. 두 사람이 겹쳐 한 덩어리로 나옵니다. 지게차와 상자는 칠해지지 않았습니다.
+- 빨강이 사람임. 두 사람이 겹쳐 한 덩어리로 나옴. 지게차와 상자는 칠해지지 않았음.
 
 ## 6. 결과를 읽는 노드 돌리기
 
@@ -160,10 +160,10 @@ python3 person_watch.py
 [INFO] [person_watch]: 사람   1.6 %  (가로 545 ~ 607 화소, 영상 960 x 544)  1초 동안 21장
 ```
 
-- `/unet/raw_segmentation_mask` 를 읽습니다. 화소마다 종류 번호(0 = 그 밖, 1 = 사람)가 든 영상입니다.
-- 사람이 화면의 1.6 % 이고, 가로 547 ~ 607 화소 사이에 있습니다. 위 그림의 빨간 덩어리 자리입니다.
-- **1초에 20장**이 처리됩니다 (강의 PC, RTX 5060 Ti. Isaac Sim 과 같은 GPU 를 나눠 씀).
-- 로봇이라면 이 숫자로 판단합니다. 예: 사람이 화면 가운데에 일정 비율 이상이면 멈춘다.
+- `/unet/raw_segmentation_mask` 를 읽음. 화소마다 종류 번호(0 = 그 밖, 1 = 사람)가 든 영상임.
+- 사람이 화면의 1.6 % 이고, 가로 547 ~ 607 화소 사이에 있음. 위 그림의 빨간 덩어리 자리임.
+- **1초에 20장**이 처리됨 (강의 PC, RTX 5060 Ti. Isaac Sim 과 같은 GPU 를 나눠 씀).
+- 로봇이라면 이 숫자로 판단함. 예: 사람이 화면 가운데에 일정 비율 이상이면 멈춤.
 
 ### person_watch.py 의 핵심
 
@@ -176,7 +176,7 @@ ratio = 100.0 * person.mean()
 columns = np.flatnonzero(person.any(axis=0))
 ```
 
-- 강의 21 의 `lane_follow.py` 와 같은 방식으로, 영상 메시지를 numpy 배열로 바꿔 셉니다.
+- 강의 21 의 `lane_follow.py` 와 같은 방식으로, 영상 메시지를 numpy 배열로 바꿔 셈.
 
 ## 7. 사람을 옮겨 보기
 
@@ -184,8 +184,8 @@ columns = np.flatnonzero(person.any(axis=0))
 
 ### 초록(Y) 화살표를 끌어 옆으로 약 1.2 m
 
-- Play 중에 옮깁니다.
-- 이 그림은 강의 PC 에서 끌지 않고 위치 값을 1.2 m 바꿔 찍었습니다. 결과는 같습니다.
+- Play 중에 옮김.
+- 이 그림은 강의 PC 에서 끌지 않고 위치 값을 1.2 m 바꿔 찍었음. 결과는 같음.
 
 ### 카메라 영상: 두 사람이 떨어짐
 
@@ -202,8 +202,8 @@ columns = np.flatnonzero(person.any(axis=0))
 | 사람 비율 | 1.6 % | 1.7 % |
 | 가로 범위 | 547 ~ 607 화소 | 426 ~ 608 화소 |
 
-- 가로 범위가 왼쪽으로 넓어졌습니다. 옮긴 사람이 426 쪽에 있습니다.
+- 가로 범위가 왼쪽으로 넓어졌음. 옮긴 사람이 426 쪽에 있음.
 
 ### Stop 을 누르면
 
-- 카메라 토픽이 더 나오지 않아 분할도 멈춥니다. 강의 PC 에서 Stop 뒤에는 분할 결과가 한 장도 오지 않았습니다. 다시 Play 하면 이어집니다.
+- 카메라 토픽이 더 나오지 않아 분할도 멈춤. 강의 PC 에서 Stop 뒤에는 분할 결과가 한 장도 오지 않았음. 다시 Play 하면 이어짐.

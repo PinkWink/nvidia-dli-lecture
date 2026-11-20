@@ -1,10 +1,10 @@
 # 19. 도로 인식 데이터 모으기: 카메라 영상과 정답 마스크 — 명령 모음
 
-Pinky Pro 가 카메라로 도로를 알아보게 하려면 먼저 학습 데이터가 필요합니다. 핑크시티 곳곳에서 카메라 영상과 "어디가 도로인지" 정답을 함께 자동으로 모읍니다. [18. 핑크시티 자율주행](../18_pinky_nav2/README.md) 다음 내용입니다.
+- Pinky Pro 가 카메라로 도로를 알아보게 하려면 먼저 학습 데이터가 필요함. 핑크시티 곳곳에서 카메라 영상과 "어디가 도로인지" 정답을 함께 자동으로 모음. [18. 핑크시티 자율주행](../18_pinky_nav2/README.md) 다음 내용임.
 
 ## 1. 준비
 
-강의 11 의 준비(`bash 11_pinky_import/prepare_pinky.sh`)가 되어 있어야 합니다. ROS 2 는 쓰지 않습니다.
+- 강의 11 의 준비(`bash 11_pinky_import/prepare_pinky.sh`)가 되어 있어야 함. ROS 2 는 쓰지 않음.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -17,7 +17,7 @@ git pull
 ~/isaacsim/python.sh 19_road_dataset/collect_dataset.py --count 20 --out work/road_dataset_test
 ```
 
-`work/road_dataset_test/preview/` 의 그림을 열어 영상과 정답이 맞는지 봅니다.
+- `work/road_dataset_test/preview/` 의 그림을 열어 영상과 정답이 맞는지 봄.
 
 ## 3. 400장 모으기
 
@@ -39,7 +39,7 @@ git pull
   4 횡단보도 · 정지선               1.3 %
 ```
 
-강의 PC(RTX 5060 Ti)에서 약 1분, 폴더 크기 약 51 MB.
+- 강의 PC(RTX 5060 Ti)에서 약 1분, 폴더 크기 약 51 MB.
 
 ## 만들어지는 것 (`work/road_dataset`)
 
@@ -69,7 +69,7 @@ git pull
 | edge (벗어나려는 중) | 약 25 % | 좌우 0.26 m 까지 (보도 위 포함) | 도로 방향 ± 45° |
 | any (아무 데나 보기) | 약 15 % | 좌우 0.26 m 까지 | 아무 방향 |
 
-해의 방향과 밝기도 장마다 바뀝니다.
+- 해의 방향과 밝기도 장마다 바뀜.
 
 ## 옵션
 
@@ -85,5 +85,5 @@ git pull
 | 증상 | 해결 |
 |---|---|
 | URDF 가 없다고 나옴 | `bash 11_pinky_import/prepare_pinky.sh` 를 먼저 실행 |
-| masks 의 그림이 까맣게만 보임 | 정상. 픽셀 값이 0 ~ 4 라서 그렇습니다. `preview/` 의 그림으로 확인 |
+| masks 의 그림이 까맣게만 보임 | 정상. 픽셀 값이 0 ~ 4 라서 그러함. `preview/` 의 그림으로 확인 |
 | 더 많이 모으고 싶음 | `--count 1000`. 다른 자리들을 원하면 `--seed 1` |

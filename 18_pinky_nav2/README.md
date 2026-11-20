@@ -1,12 +1,12 @@
 # 18. 핑크시티 자율주행: AMCL · Nav2 — 명령 모음
 
-강의 17 에서 저장한 지도 위에서 Pinky Pro 의 위치를 추정하고(AMCL), 목적지를 주면 스스로 가게 합니다(Nav2). [17. 핑크시티 지도 만들기](../17_pinky_slam/README.md) 다음 내용입니다.
+- 강의 17 에서 저장한 지도 위에서 Pinky Pro 의 위치를 추정하고(AMCL), 목적지를 주면 스스로 가게 함(Nav2). [17. 핑크시티 지도 만들기](../17_pinky_slam/README.md) 다음 내용임.
 
-이 강의의 로봇은 도로를 모릅니다. 지도에는 벽 · 건물 · 나무만 있어서, 보도를 가로질러 가장 짧은 길로 갑니다.
+- 이 강의의 로봇은 도로를 모름. 지도에는 벽 · 건물 · 나무만 있어서, 보도를 가로질러 가장 짧은 길로 감.
 
 ## 1. 준비 (한 번만)
 
-강의 17 의 지도(`work/pink_city/pink_city_map.yaml` · `.pgm`)가 있어야 합니다. Pinky Pro [공식 저장소](https://github.com/pinklab-art/pinky_pro)의 내비게이션 패키지를 빌드합니다 (저장소는 강의 11 에서 `~/pinky_pro` 에 받았습니다).
+- 강의 17 의 지도(`work/pink_city/pink_city_map.yaml` · `.pgm`)가 있어야 함. Pinky Pro [공식 저장소](https://github.com/pinklab-art/pinky_pro)의 내비게이션 패키지를 빌드함 (저장소는 강의 11 에서 `~/pinky_pro` 에 받았음).
 
 ```bash
 cd ~/pinky_pro
@@ -18,7 +18,7 @@ colcon build --packages-select pinky_navigation
 Summary: 1 package finished
 ```
 
-모든 터미널에서 먼저 `source /opt/ros/jazzy/setup.bash`. 다른 ROS 2 장비와 같은 네트워크라면 이어서 `export ROS_DOMAIN_ID=83` 처럼 같은 번호를 정합니다.
+- 모든 터미널에서 먼저 `source /opt/ros/jazzy/setup.bash`. 다른 ROS 2 장비와 같은 네트워크라면 이어서 `export ROS_DOMAIN_ID=83` 처럼 같은 번호를 정함.
 
 ## 2. 터미널 1: 핑크시티 + Pinky Pro
 
@@ -44,7 +44,7 @@ source ~/pinky_pro/install/setup.bash
 ros2 launch pinky_navigation bringup_launch.xml map:=$HOME/nvidia-dli-lecture/work/pink_city/pink_city_map.yaml params_file:=$HOME/nvidia-dli-lecture/18_pinky_nav2/nav2_params.yaml use_sim_time:=True
 ```
 
-`Managed nodes are active` 가 두 번(localization · navigation) 나오면 준비된 것입니다.
+- `Managed nodes are active` 가 두 번(localization · navigation) 나오면 준비된 것임.
 
 ## 5. 터미널 4: RViz2
 
@@ -54,13 +54,13 @@ source ~/pinky_pro/install/setup.bash
 rviz2 -d ~/nvidia-dli-lecture/18_pinky_nav2/rviz/nav2.rviz --ros-args -p use_sim_time:=true
 ```
 
-왼쪽 Navigation 2 패널에 Navigation: active, Localization: active 가 보여야 합니다.
+- 왼쪽 Navigation 2 패널에 Navigation: active, Localization: active 가 보여야 함.
 
 ## 6. 목적지 주기
 
-RViz2 위쪽의 `Nav2 Goal` 을 누르고, 지도에서 가고 싶은 곳을 누른 채 바라볼 방향으로 끌었다 놓습니다.
+- RViz2 위쪽의 `Nav2 Goal` 을 누르고, 지도에서 가고 싶은 곳을 누른 채 바라볼 방향으로 끌었다 놓음.
 
-명령으로 줄 수도 있습니다 (터미널 5):
+- 명령으로 줄 수도 있음 (터미널 5):
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -71,23 +71,23 @@ ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: 
 Goal finished with status: SUCCEEDED
 ```
 
-출발점으로 돌아오기:
+- 출발점으로 돌아오기:
 
 ```bash
 ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: map}, pose: {position: {x: 0.0, y: 0.0}, orientation: {w: 1.0}}}}"
 ```
 
-지도 좌표 = 출발점이 (0, 0), 로봇이 처음 보던 방향이 +x 입니다. 도시 좌표 (X, Y) 는 지도 좌표 (Y + 0.5, −X − 1.05) 가 됩니다.
+- 지도 좌표 = 출발점이 (0, 0), 로봇이 처음 보던 방향이 +x 임. 도시 좌표 (X, Y) 는 지도 좌표 (Y + 0.5, −X − 1.05) 가 됨.
 
 ## 7. 위치 추정이 틀어졌을 때
 
-RViz2 위쪽의 `2D Pose Estimate` 를 누르고, 지도에서 로봇이 실제로 있는 곳을 누른 채 로봇이 보는 방향으로 끌었다 놓습니다.
+- RViz2 위쪽의 `2D Pose Estimate` 를 누르고, 지도에서 로봇이 실제로 있는 곳을 누른 채 로봇이 보는 방향으로 끌었다 놓음.
 
-이 강의에서는 누르지 않아도 됩니다. 시뮬레이터를 새로 켜면 로봇이 지도를 만들 때와 같은 자리에서 시작하고, 설정의 `initial_pose: [0, 0, 0]` 이 그 자리이기 때문입니다.
+- 이 강의에서는 누르지 않아도 됨. 시뮬레이터를 새로 켜면 로봇이 지도를 만들 때와 같은 자리에서 시작하고, 설정의 `initial_pose: [0, 0, 0]` 이 그 자리이기 때문임.
 
 ## 공식 설정에서 바꾼 값
 
-`18_pinky_nav2/nav2_params.yaml` 은 공식 저장소의 `pinky_navigation/params/nav2_params.yaml` 에서 아래 값만 바꿨습니다. 실행 파일(`bringup_launch.xml`)과 RViz2 설정(시점만 확대)은 공식 것을 씁니다.
+- `18_pinky_nav2/nav2_params.yaml` 은 공식 저장소의 `pinky_navigation/params/nav2_params.yaml` 에서 아래 값만 바꿨음. 실행 파일(`bringup_launch.xml`)과 RViz2 설정(시점만 확대)은 공식 것을 씀.
 
 | 값 | 공식 설정 | 이 강의 | 뜻 |
 |---|---|---|---|

@@ -1,13 +1,13 @@
 # 11. 내 로봇 가져오기: Pinky Pro (URDF 만들기 · 가져오기 · 모터) — 명령 모음
 
-영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. 강의 8 ~ 10 에서 Carter 로 연습한 순서를 핑크랩의 교육용 로봇 **Pinky Pro** 로 다시 합니다.
+- 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았음. 강의 8 ~ 10 에서 Carter 로 연습한 순서를 핑크랩의 교육용 로봇 **Pinky Pro** 로 다시 함.
 
 - Pinky Pro 공식 저장소 (URDF 의 출처): https://github.com/pinklab-art/pinky_pro
-- 필요한 것: 강의 7 에서 설치한 ROS 2 Jazzy (xacro 파일을 URDF 로 바꾸는 데 씁니다)
+- 필요한 것: 강의 7 에서 설치한 ROS 2 Jazzy (xacro 파일을 URDF 로 바꾸는 데 씀)
 
 ## 1. Pinky Pro URDF 준비
 
-방법 A 와 B 중 하나만 합니다.
+- 방법 A 와 B 중 하나만 함.
 
 ### 방법 A: 스크립트로 한 번에
 
@@ -18,17 +18,17 @@ git pull
 bash 11_pinky_import/prepare_pinky.sh
 ```
 
-마지막에 `준비 완료: .../work/pinky_description/urdf/pinky.urdf` 가 나오면 끝입니다.
+- 마지막에 `준비 완료: .../work/pinky_description/urdf/pinky.urdf` 가 나오면 끝임.
 
 ### 방법 B: 한 줄씩 직접
 
-① 도구 설치
+- ① 도구 설치
 
 ```bash
 sudo apt install -y git python3-colcon-common-extensions ros-jazzy-xacro
 ```
 
-② 공식 저장소 받기
+- ② 공식 저장소 받기
 
 ```bash
 mkdir -p ~/pinky_pro/src
@@ -36,7 +36,7 @@ cd ~/pinky_pro/src
 git clone https://github.com/pinklab-art/pinky_pro.git
 ```
 
-③ `pinky_description` 패키지만 빌드
+- ③ `pinky_description` 패키지만 빌드
 
 ```bash
 cd ~/pinky_pro
@@ -45,7 +45,7 @@ colcon build --packages-select pinky_description
 source install/setup.bash
 ```
 
-④ 작업 폴더로 복사하고 xacro → URDF
+- ④ 작업 폴더로 복사하고 xacro → URDF
 
 ```bash
 mkdir -p ~/nvidia-dli-lecture/work/pinky_description
@@ -54,15 +54,15 @@ xacro src/pinky_pro/pinky_description/urdf/robot.urdf.xacro > ~/nvidia-dli-lectu
 grep -c "<link" ~/nvidia-dli-lecture/work/pinky_description/urdf/pinky.urdf
 ```
 
-`18` 이 나오면 맞습니다 (링크 18개).
+- `18` 이 나오면 맞음 (링크 18개).
 
-⑤ 화면에 띄울 표정 그림 (강의 13 에서 사용, GIF 마다 한 장면)
+- ⑤ 화면에 띄울 표정 그림 (강의 13 에서 사용, GIF 마다 한 장면)
 
 ```bash
 ~/isaacsim/python.sh ~/nvidia-dli-lecture/11_pinky_import/make_faces.py src/pinky_pro/pinky_emotion/emotion ~/nvidia-dli-lecture/work/pinky_faces
 ```
 
-셸이 zsh 라면 `setup.bash` 대신 `setup.zsh` 를 씁니다.
+- 셸이 zsh 라면 `setup.bash` 대신 `setup.zsh` 를 씀.
 
 ## 2. URDF 읽기
 
@@ -159,13 +159,13 @@ cd ~/isaacsim
 | Left Joint Name | `r_wheel_joint` |
 | Use Keyboard Control (WASD) | 체크 |
 
-**Solver Type 을 PGS 로 바꾸는 이유**: 기본 솔버 TGS 에서는 이 로봇이 서 있는 동안에도 1초에 0.26° 씩 방향이 틀어집니다 (강의 PC 측정, PGS 에서는 0). 두 솔버의 차이는 강의 글 6절에 있습니다. 코드(`import_pinky.py`)는 자동으로 PGS 를 씁니다.
+- **Solver Type 을 PGS 로 바꾸는 이유**: 기본 솔버 TGS 에서는 이 로봇이 서 있는 동안에도 1초에 0.26° 씩 방향이 틀어짐 (강의 PC 측정, PGS 에서는 0). 두 솔버의 차이는 강의 글 6절에 있음. 코드(`import_pinky.py`)는 자동으로 PGS 를 씀.
 
-**주의 (Isaac Sim 5.1)**: Right 칸에 `l_wheel_joint`, Left 칸에 `r_wheel_joint` 를 넣습니다. 칸 이름대로 넣으면 회전 방향이 반대가 됩니다 (강의 5 · 9 와 같은 문제).
+- **주의 (Isaac Sim 5.1)**: Right 칸에 `l_wheel_joint`, Left 칸에 `r_wheel_joint` 를 넣음. 칸 이름대로 넣으면 회전 방향이 반대가 됨 (강의 5 · 9 와 같은 문제).
 
 ## 5. 같은 일을 코드로
 
-Isaac Sim 창을 닫은 뒤 실행합니다.
+- Isaac Sim 창을 닫은 뒤 실행함.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -202,7 +202,7 @@ r_wheel_joint          Y        0.00     0.443
 결과: v = 0.1 m/s, ω = 0 rad/s 로 3초 → 이동 (0.290, -0.001) m, 회전 -0.1°.
 ```
 
-앞부분에는 2절의 URDF 표가 먼저 나옵니다.
+- 앞부분에는 2절의 URDF 표가 먼저 나옴.
 
 ## 6. 바꿔 보기
 
@@ -229,7 +229,7 @@ r_wheel_joint          Y        0.00     0.443
 | `ROS 2 Jazzy 가 없습니다` | 강의 7 의 1절(ROS 2 설치) |
 | `colcon: command not found` · `xacro: command not found` | 1절 ①의 `sudo apt install` |
 | `source` 에서 오류 (zsh) | `setup.bash` 대신 `setup.zsh` |
-| 가져온 로봇이 너무 작게 보임 | 실제 크기가 손바닥만 합니다 (바퀴 지름 5.6 cm). Stage 에서 `pinky` 를 고르고 뷰포트에서 `F` 키 |
+| 가져온 로봇이 너무 작게 보임 | 실제 크기가 손바닥만 함 (바퀴 지름 5.6 cm). Stage 에서 `pinky` 를 고르고 뷰포트에서 `F` 키 |
 | A 를 눌렀는데 오른쪽으로 돎 | 제어기 창의 Right · Left 칸을 서로 바꿔 넣었는지 확인 |
 | 서 있는데 방향이 조금씩 틀어짐 (1분에 약 16°) | `physicsScene` 의 Solver Type 이 기본값 TGS → `PGS` 로 (순서 10-1) |
 
@@ -246,4 +246,4 @@ r_wheel_joint          Y        0.00     0.443
 | `--gui` | 창을 띄움 |
 | `--save USD` | Play 전 장면을 저장 |
 
-다음: [12. Pinky Pro 센서](../12_pinky_sensors/README.md)
+- 다음: [12. Pinky Pro 센서](../12_pinky_sensors/README.md)

@@ -1,10 +1,10 @@
 # 8. URDF 로봇 가져오기: carter.urdf 읽기 · URDF Importer — 명령 모음
 
-영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. 강의 4 ~ 7 에서는 로봇을 손으로 만들었고, 여기서는 설계도 파일(URDF)로 가져옵니다.
+- 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았음. 강의 4 ~ 7 에서는 로봇을 손으로 만들었고, 여기서는 설계도 파일(URDF)로 가져옴.
 
 ## 1. Carter URDF 준비
 
-Isaac Sim 안에 들어 있는 예제 로봇 Carter 의 URDF 를 작업 폴더로 복사합니다.
+- Isaac Sim 안에 들어 있는 예제 로봇 Carter 의 URDF 를 작업 폴더로 복사함.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -35,7 +35,7 @@ grep -n "<link\|<joint" work/carter/urdf/carter.urdf
 ~/isaacsim/python.sh 08_urdf_import/import_carter.py --read-only
 ```
 
-링크 7개 · 관절 6개의 표가 나옵니다 (아래 4절 출력의 앞부분과 같습니다). Isaac Sim 을 켜지 않아 바로 끝납니다.
+- 링크 7개 · 관절 6개의 표가 나옴 (아래 4절 출력의 앞부분과 같음). Isaac Sim 을 켜지 않아 바로 끝남.
 
 ## 3. 화면에서 누르는 순서
 
@@ -57,11 +57,11 @@ cd ~/isaacsim
 | 9 | Stage 에서 `carter` → `joints` 펼치기 | 관절 6개 |
 | 10 | `File > Save As` | `~/nvidia-dli-lecture/work/carter_gui.usd` |
 
-가져온 결과는 `work/carter/urdf/carter/carter.usd` 로도 저장됩니다.
+- 가져온 결과는 `work/carter/urdf/carter/carter.usd` 로도 저장됨.
 
 ## 4. 같은 가져오기를 코드로
 
-Isaac Sim 창을 닫은 뒤 실행합니다.
+- Isaac Sim 창을 닫은 뒤 실행함.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -104,9 +104,9 @@ right_wheel  PhysicsRevoluteJoint   Y   chassis_link → right_wheel_link       
 결과: 바퀴로 바닥에 섰습니다. 몸체 높이 0.24 m = 바퀴 반지름.
 ```
 
-이 표들 앞뒤로 `[Warning]` 등 로그가 함께 나옵니다. 정상입니다.
+- 이 표들 앞뒤로 `[Warning]` 등 로그가 함께 나옴. 정상임.
 
-바퀴 Damping 307.9 = Natural Frequency 25 의 제곱(625) × 관절이 돌리는 관성(0.493). 화면의 Property 에 보이는 값과 같습니다.
+- 바퀴 Damping 307.9 = Natural Frequency 25 의 제곱(625) × 관절이 돌리는 관성(0.493). 화면의 Property 에 보이는 값과 같음.
 
 ## 5. 바꿔 보기
 
@@ -143,4 +143,4 @@ right_wheel  PhysicsRevoluteJoint   Y   chassis_link → right_wheel_link       
 | `--gui` | 창을 띄움 |
 | `--save USD` | Play 전 장면을 저장 |
 
-다음: [9. 가져온 로봇 몰기](../09_carter_drive/README.md)
+- 다음: [9. 가져온 로봇 몰기](../09_carter_drive/README.md)

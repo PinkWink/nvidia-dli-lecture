@@ -1,8 +1,8 @@
 # 13. Pinky Pro 화면(LCD)과 LED 바 — 명령 모음
 
-영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. [12. Pinky Pro 센서](../12_pinky_sensors/README.md) 다음 내용입니다.
+- 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았음. [12. Pinky Pro 센서](../12_pinky_sensors/README.md) 다음 내용임.
 
-표정 그림은 강의 11 의 1절에서 만든 `~/nvidia-dli-lecture/work/pinky_faces/` 의 PNG 를 씁니다 (angry · basic · bored · fun · happy · hello · interest · sad).
+- 표정 그림은 강의 11 의 1절에서 만든 `~/nvidia-dli-lecture/work/pinky_faces/` 의 PNG 를 씀 (angry · basic · bored · fun · happy · hello · interest · sad).
 
 ## 1. 준비
 
@@ -31,7 +31,7 @@ cd ~/isaacsim
 | 10 | Emissive Color map | 같은 경로 → Enter |
 | 11 | Emissive Color 의 R · G · B (숫자 칸을 `Ctrl` + 클릭하고 입력) | `1`, `1`, `1` |
 
-그림 경로 (`내이름` 은 내 사용자 이름으로):
+- 그림 경로 (`내이름` 은 내 사용자 이름으로):
 
 ```text
 /home/내이름/nvidia-dli-lecture/work/pinky_faces/basic.png
@@ -52,7 +52,7 @@ cd ~/isaacsim
 
 ## 3. 같은 일을 코드로
 
-Isaac Sim 창을 닫은 뒤 실행합니다.
+- Isaac Sim 창을 닫은 뒤 실행함.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -67,7 +67,7 @@ LED : /World/pinky/robot_lamp/visuals ← /World/Looks/LED_Material, 색 (0, 1, 
 결과: 화면에 표정을 띄우고 LED 바를 켰습니다.
 ```
 
-로봇 사진이 `work/pinky_face.png` 로 저장됩니다.
+- 로봇 사진이 `work/pinky_face.png` 로 저장됨.
 
 ## 4. 바꿔 보기
 

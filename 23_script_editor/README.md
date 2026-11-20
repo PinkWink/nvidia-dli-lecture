@@ -1,6 +1,6 @@
 # 23. SIL · HIL 과 Script Editor: 코드로 장면 다루기 — 명령 모음
 
-영상에서 입력하는 터미널 명령과 Script Editor 에 붙여 넣는 코드를 순서대로 모았습니다. [22. 장소 이름으로 명령하기](../22_city_mission/README.md) 다음 내용입니다.
+- 영상에서 입력하는 터미널 명령과 Script Editor 에 붙여 넣는 코드를 순서대로 모았음. [22. 장소 이름으로 명령하기](../22_city_mission/README.md) 다음 내용임.
 
 | 파일 | 내용 |
 |---|---|
@@ -8,7 +8,7 @@
 | [02_core_api.py](02_core_api.py) | Core API 로 같은 장면 만들기 |
 | [03_drive_pinky.py](03_drive_pinky.py) | 열려 있는 Pinky Pro 장면의 바퀴 속도 바꾸기 |
 
-세 파일은 `python.sh` 로 실행하는 파일이 아니라, **Isaac Sim 의 Script Editor 에 붙여 넣는 코드**입니다. Isaac Sim 5.1 의 Script Editor 는 한글을 `??` 로 표시하므로 주석과 출력 문장을 영어로 썼습니다.
+- 세 파일은 `python.sh` 로 실행하는 파일이 아니라, **Isaac Sim 의 Script Editor 에 붙여 넣는 코드**임. Isaac Sim 5.1 의 Script Editor 는 한글을 `??` 로 표시하므로 주석과 출력 문장을 영어로 썼음.
 
 ## 1. Script Editor 열기
 
@@ -32,13 +32,13 @@ cd ~/isaacsim
 | 6 | [01_usd_api.py](01_usd_api.py) 의 내용을 붙여 넣고 `Run` |
 | 7 | `Play` → 상자가 떨어짐 → `Stop` |
 
-기대 출력:
+- 기대 출력:
 
 ```text
 created: ['/World/PhysicsScene', '/World/Ground', '/World/Cube']
 ```
 
-강의 PC 측정: 상자 중심 높이 1.0 m → 0.2 m.
+- 강의 PC 측정: 상자 중심 높이 1.0 m → 0.2 m.
 
 ## 3. Core API 로 같은 일 하기
 
@@ -48,7 +48,7 @@ created: ['/World/PhysicsScene', '/World/Ground', '/World/Cube']
 | 9 | [02_core_api.py](02_core_api.py) 의 내용을 붙여 넣고 `Run` |
 | 10 | `Play` → 상자가 떨어짐 → `Stop` |
 
-기대 출력:
+- 기대 출력:
 
 ```text
 cube position: [0. 0. 1.]
@@ -56,7 +56,7 @@ cube position: [0. 0. 1.]
 
 ## 4. Pinky Pro 의 바퀴 속도를 코드로 바꾸기
 
-새 터미널에서 장면 파일을 만듭니다 ([11. Pinky Pro 가져오기](../11_pinky_import/README.md) 의 준비가 되어 있어야 합니다).
+- 새 터미널에서 장면 파일을 만듦 ([11. Pinky Pro 가져오기](../11_pinky_import/README.md) 의 준비가 되어 있어야 함).
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -75,7 +75,7 @@ cd ~/nvidia-dli-lecture
 | 13 | [03_drive_pinky.py](03_drive_pinky.py) 의 내용을 붙여 넣고 `Run` → 로봇이 오른쪽으로 원을 그림 |
 | 14 | `LEFT, RIGHT` 숫자를 바꿔 다시 `Run` |
 
-기대 출력:
+- 기대 출력:
 
 ```text
 l_wheel_joint target 360.0 deg/s
@@ -83,4 +83,4 @@ r_wheel_joint target 180.0 deg/s
 robot position: x=0.000 y=-0.000 z=0.028 m
 ```
 
-강의 PC 측정 (`360.0, 180.0`): 1초에 약 56° 씩 돌며 지름 약 0.28 m 의 원.
+- 강의 PC 측정 (`360.0, 180.0`): 1초에 약 56° 씩 돌며 지름 약 0.28 m 의 원.

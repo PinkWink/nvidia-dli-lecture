@@ -1,10 +1,10 @@
 # 21. 카메라로 차선을 따라 달리기: 세그먼테이션 + 제어기 — 명령 모음
 
-강의 20 의 모델을 ROS 2 노드로 만들어, Pinky Pro 가 카메라 영상만 보고 핑크시티의 오른쪽 차로를 따라 달리게 합니다. [20. 도로를 알아보는 모델 학습](../20_road_segmentation/README.md) 다음 내용입니다.
+- 강의 20 의 모델을 ROS 2 노드로 만들어, Pinky Pro 가 카메라 영상만 보고 핑크시티의 오른쪽 차로를 따라 달리게 함. [20. 도로를 알아보는 모델 학습](../20_road_segmentation/README.md) 다음 내용임.
 
 ## 1. 준비
 
-`work/road_model/road_seg.onnx` 가 있어야 합니다 (강의 20).
+- `work/road_model/road_seg.onnx` 가 있어야 함 (강의 20).
 
 ```bash
 sudo apt install ros-jazzy-rqt-image-view      # 한 번만 (이미 있으면 넘어감)
@@ -13,7 +13,7 @@ git pull
 ls work/road_model/road_seg.onnx
 ```
 
-모든 터미널에서 먼저 `source /opt/ros/jazzy/setup.bash`. 다른 ROS 2 장비와 같은 네트워크라면 이어서 `export ROS_DOMAIN_ID=83` 처럼 같은 번호를 정합니다.
+- 모든 터미널에서 먼저 `source /opt/ros/jazzy/setup.bash`. 다른 ROS 2 장비와 같은 네트워크라면 이어서 `export ROS_DOMAIN_ID=83` 처럼 같은 번호를 정함.
 
 ## 2. 터미널 1: 핑크시티 + Pinky Pro
 
@@ -33,7 +33,7 @@ source /opt/ros/jazzy/setup.bash
 ros2 run rqt_image_view rqt_image_view /lane/debug
 ```
 
-노드를 켜기 전에는 빈 화면입니다.
+- 노드를 켜기 전에는 빈 화면임.
 
 ## 4. 터미널 3: 차선 추종 노드
 
@@ -49,7 +49,7 @@ python3 ~/nvidia-dli-lecture/21_lane_follow/lane_follow.py
 [INFO] [lane_follow]: 차선 추종: 영상 41 장/초, 치우침 -0.07
 ```
 
-`Ctrl` + `C` 로 끝내면 로봇이 섭니다.
+- `Ctrl` + `C` 로 끝내면 로봇이 섬.
 
 ## 5. 확인
 
@@ -83,13 +83,13 @@ python3 ~/nvidia-dli-lecture/21_lane_follow/lane_follow.py --ros-args -p speed:=
 
 ## 7. 한계 보기: 안쪽 차로로 돌면
 
-터미널 1 을 끄고 `--start` 없이 다시 켠 뒤, 터미널 3 의 노드를 다시 실행합니다.
+- 터미널 1 을 끄고 `--start` 없이 다시 켠 뒤, 터미널 3 의 노드를 다시 실행함.
 
 ```bash
 ~/isaacsim/python.sh 16_pink_city/pink_city.py --ros2 --gui --hide-lidar
 ```
 
-이 방향으로는 오른쪽 차로가 안쪽이라 삼거리 입구가 오른쪽에 열려 있습니다. 강의 PC 에서는 삼거리에서 옆길로 들어간 뒤 사거리 앞에서 목표를 잃고, 28초 만에(0.84 m) 공원 모퉁이에서 멈췄습니다. 이 문제는 다음 강의에서 지도상 위치를 더해 풉니다.
+- 이 방향으로는 오른쪽 차로가 안쪽이라 삼거리 입구가 오른쪽에 열려 있음. 강의 PC 에서는 삼거리에서 옆길로 들어간 뒤 사거리 앞에서 목표를 잃고, 28초 만에(0.84 m) 공원 모퉁이에서 멈췄음. 이 문제는 다음 강의에서 지도상 위치를 더해 풂.
 
 ## 강의 PC 의 결과
 
@@ -104,9 +104,9 @@ python3 ~/nvidia-dli-lecture/21_lane_follow/lane_follow.py --ros-args -p speed:=
 
 | 증상 | 해결 |
 |---|---|
-| "모델이 없습니다" | 강의 20 의 `train.py` 를 먼저 실행 |
+| "모델이 없음" | 강의 20 의 `train.py` 를 먼저 실행 |
 | 노드는 켜졌는데 로봇이 안 움직임 | 터미널 1 과 같은 `ROS_DOMAIN_ID` 인지, `ros2 topic hz /camera/image_raw` 로 영상이 나오는지 확인 |
 | "도로를 놓쳐 정지" | 카메라에 도로가 안 보임 (벽을 보고 있거나 보도 위). 시뮬레이터를 다시 켜서 시작 위치로 |
-| 옆길로 빠지거나 사거리에서 멈춤 | `--start` 없이 켜면 안쪽 차로에서 시작해 갈림길을 만납니다. 이 강의는 바깥 차로(`--start -1.15 0.5 -90`)에서 합니다 |
+| 옆길로 빠지거나 사거리에서 멈춤 | `--start` 없이 켜면 안쪽 차로에서 시작해 갈림길을 만남. 이 강의는 바깥 차로(`--start -1.15 0.5 -90`)에서 함 |
 | 좌우로 흔들림 | `gain` 을 낮추기 (예: 1.2) |
 | 곡선에서 바깥으로 밀림 | `speed` 를 낮추거나 `gain` 을 높이기 |

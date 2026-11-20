@@ -1,6 +1,6 @@
 # 5. 로봇 조종: Articulation Root · Differential Controller · 키보드 — 명령 모음
 
-영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. [4. 로봇 만들기](../04_build_robot/README.md) 다음 내용입니다.
+- 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았음. [4. 로봇 만들기](../04_build_robot/README.md) 다음 내용임.
 
 ## 1. 준비
 
@@ -35,7 +35,7 @@ cd ~/isaacsim
 | Left Joint Name | `Rear_Right_Joint` |
 | Use Keyboard Control (WASD) | 처음엔 끔, 키보드 조종 때 켬 |
 
-**주의 (Isaac Sim 5.1)**: Right 칸에 `Rear_Left_Joint`, Left 칸에 `Rear_Right_Joint` 를 넣습니다. 칸 이름대로 넣으면 회전 방향이 반대가 됩니다.
+- **주의 (Isaac Sim 5.1)**: Right 칸에 `Rear_Left_Joint`, Left 칸에 `Rear_Right_Joint` 를 넣음. 칸 이름대로 넣으면 회전 방향이 반대가 됨.
 
 ### 키보드 조종
 
@@ -49,7 +49,7 @@ cd ~/isaacsim
 
 ## 3. 같은 조종을 코드로
 
-Isaac Sim 창을 닫은 뒤 실행합니다.
+- Isaac Sim 창을 닫은 뒤 실행함.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -82,7 +82,7 @@ git pull
 | `--linear 0 --angular 1` | 3초에 왼쪽으로 11.0° (방향 + = 왼쪽) |
 | `--linear -1 --seconds 2` | 2초에 뒤로 1.62 m |
 
-- 제자리 회전은 바퀴가 옆으로 미끄러지며 덜컹거리는 동작이라 값이 조금씩 달라질 수 있습니다 (강의 PC: 11~17°).
+- 제자리 회전은 바퀴가 옆으로 미끄러지며 덜컹거리는 동작이라 값이 조금씩 달라질 수 있음 (강의 PC: 11~17°).
 
 ## 5. 키보드로 조종하기
 
@@ -90,7 +90,7 @@ git pull
 ~/isaacsim/python.sh 05_control/drive_robot.py --keyboard
 ```
 
-창이 뜨면 뷰포트를 한 번 클릭한 뒤 W(앞) · S(뒤) · A(왼쪽) · D(오른쪽). 창을 닫으면 끝납니다.
+- 창이 뜨면 뷰포트를 한 번 클릭한 뒤 W(앞) · S(뒤) · A(왼쪽) · D(오른쪽). 창을 닫으면 끝남.
 
 ```bash
 ~/isaacsim/python.sh 05_control/drive_robot.py --keyboard --key-linear 1 --key-angular 3
@@ -109,4 +109,4 @@ git pull
 | `--gui` | 창을 띄움 | |
 | `--save USD` | Play 전 장면을 파일로 저장 | |
 
-다음: [6. 센서 달기](../06_sensors/README.md)
+- 다음: [6. 센서 달기](../06_sensors/README.md)

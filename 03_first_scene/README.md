@@ -1,6 +1,6 @@
 # 3. 첫 장면: 큐브를 떨어뜨리며 배우는 물리 기초 — 명령 모음
 
-영상에서 입력하는 터미널 명령과 메뉴 순서를 모았습니다. [2. 실행과 화면 구성](../02_launch/README.md) 다음 내용입니다.
+- 영상에서 입력하는 터미널 명령과 메뉴 순서를 모았음. [2. 실행과 화면 구성](../02_launch/README.md) 다음 내용임.
 
 ## 1. 준비
 
@@ -10,7 +10,7 @@ cd ~/isaacsim
 ./isaac-sim.sh
 ```
 
-Isaac Sim 이 뜨면 `File > New` 로 새 장면에서 시작합니다.
+- Isaac Sim 이 뜨면 `File > New` 로 새 장면에서 시작함.
 
 ## 2. 화면에서 누르는 순서
 
@@ -28,18 +28,18 @@ Isaac Sim 이 뜨면 `File > New` 로 새 장면에서 시작합니다.
 | 10 | ▶ Play → ■ Stop | 바닥 위에 멈춤 (Translate Z = 0.5) |
 | 11 | `File > Save As` | 아래 경로에 저장 |
 
-저장 창에 입력할 값:
+- 저장 창에 입력할 값:
 
 ```text
 경로      ~/nvidia-dli-lecture/work/
 File name first_scene.usd
 ```
 
-값을 바꿀 때는 항상 ■ Stop 상태에서 바꿉니다.
+- 값을 바꿀 때는 항상 ■ Stop 상태에서 바꿈.
 
 ## 3. 같은 장면을 코드로
 
-Isaac Sim 창을 닫은 뒤 실행합니다.
+- Isaac Sim 창을 닫은 뒤 실행함.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -80,8 +80,8 @@ cd ~/nvidia-dli-lecture
 ~/isaacsim/python.sh 03_first_scene/falling_cube.py --save work/falling_cube.usd
 ```
 
-- `--gui` 는 창을 띄웁니다. 창을 닫으면 스크립트도 끝납니다.
-- `--save` 로 저장한 파일은 `~/isaacsim/isaac-sim.sh` 로 켠 뒤 `File > Open` 으로 열 수 있습니다.
+- `--gui` 는 창을 띄움. 창을 닫으면 스크립트도 끝남.
+- `--save` 로 저장한 파일은 `~/isaacsim/isaac-sim.sh` 로 켠 뒤 `File > Open` 으로 열 수 있음.
 
 ## 6. 해 볼 것
 
@@ -90,8 +90,8 @@ cd ~/nvidia-dli-lecture
 ~/isaacsim/python.sh 03_first_scene/falling_cube.py --height 5 --seconds 3
 ```
 
-- `--gravity-up`: 중력이 위를 향합니다.
-- `--height 5`: 5 m 에서 떨어뜨립니다. 바닥에 닿는 시간을 ½ · 9.81 · t² = 4.5 로 계산한 값과 비교해 봅니다.
+- `--gravity-up`: 중력이 위를 향함.
+- `--height 5`: 5 m 에서 떨어뜨림. 바닥에 닿는 시간을 ½ · 9.81 · t² = 4.5 로 계산한 값과 비교해 봄.
 
 ## 옵션 전체
 

@@ -1,6 +1,6 @@
 # 4. 로봇 만들기: 몸체 · 바퀴 · 회전 관절 · 구동 — 명령 모음
 
-영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았습니다. [3. 첫 장면](../03_first_scene/README.md) 다음 내용입니다.
+- 영상에서 입력하는 터미널 명령과 화면에 넣는 값을 순서대로 모았음. [3. 첫 장면](../03_first_scene/README.md) 다음 내용임.
 
 ## 1. 준비
 
@@ -14,7 +14,7 @@ cd ~/isaacsim
 
 ## 2. 화면에서 누르는 순서
 
-값을 바꿀 때는 항상 ■ Stop 상태에서 바꿉니다.
+- 값을 바꿀 때는 항상 ■ Stop 상태에서 바꿈.
 
 ### 몸체
 
@@ -69,7 +69,7 @@ cd ~/isaacsim
 
 ## 3. 같은 로봇을 코드로
 
-Isaac Sim 창을 닫은 뒤 실행합니다.
+- Isaac Sim 창을 닫은 뒤 실행함.
 
 ```bash
 cd ~/nvidia-dli-lecture
@@ -115,8 +115,8 @@ git pull
 | Mesh Cylinder (기본. GUI 의 `Create > Mesh > Cylinder` 와 같은 32각 기둥) | 1.25 m | 18.7° |
 | `--round-wheels` (완전히 둥근 `UsdGeom.Cylinder`) | 1.28 m | 30.3° |
 
-- 스크립트는 메뉴와 같은 명령(`CreateMeshPrimWithDefaultXform`)으로 바퀴를 만들어 GUI 로 만든 로봇과 같은 값을 냅니다.
-- 4륜 스키드 회전은 바퀴가 옆으로 미끄러져야 하므로 바퀴 충돌 모양에 민감합니다. 직진은 거의 같습니다.
+- 스크립트는 메뉴와 같은 명령(`CreateMeshPrimWithDefaultXform`)으로 바퀴를 만들어 GUI 로 만든 로봇과 같은 값을 냄.
+- 4륜 스키드 회전은 바퀴가 옆으로 미끄러져야 하므로 바퀴 충돌 모양에 민감함. 직진은 거의 같음.
 
 ## 5. 창으로 보기 · 장면 저장
 
@@ -137,4 +137,4 @@ git pull
 | `--gui` | 창을 띄움 | |
 | `--save USD` | Play 전 장면을 파일로 저장 | |
 
-다음: [5. 로봇 조종](../05_control/README.md)
+- 다음: [5. 로봇 조종](../05_control/README.md)
