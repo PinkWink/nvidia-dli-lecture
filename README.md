@@ -67,6 +67,7 @@ cd ~/nvidia-dli-lecture
 | 35. 핑크시티에 Pinky Pro 두 대: 네임스페이스와 동시 자율주행 | [35_two_pinkys/README.md](35_two_pinkys/README.md) | `two_pinkys.py` 두 대 장면 · `two_pinky_nav2.launch.py` Nav2 두 벌 · `start_nav2.py` 준비 확인 후 시작 |
 | 36. ROS 2 로 시뮬레이터 조종하기: 자율주행 자동 시험 | [36_auto_test/README.md](36_auto_test/README.md) | `nav_test.py` 자동 반복 시험 · `common/isaac_ros_env.sh` 시뮬레이터 터미널용 환경 |
 | 37. PL-2M 가져오기: 이동형 양팔 로봇을 Isaac Sim 으로 | [37_pl2m_import/README.md](37_pl2m_import/README.md) | `prepare_pl2m.sh` URDF 준비 · `import_pl2m.py` 가져오기 · 서 있기 · 팔꿈치 굽히기 |
+| 38. 핑크랩 부스 만들기: MuJoCo 장면을 Isaac Sim 으로 옮기기 | [38_pl2m_booth/README.md](38_pl2m_booth/README.md) | `make_booth.py` 부스 옮기기 · 사진 · PL-2M 과 컵 올리기 |
 
 강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키우고, 강의 8 ~ 10 은 URDF 로 가져온 Carter 를 같은 순서(가져오기 → 조종 → 센서)로 다룹니다. 강의 11 ~ 13 은 핑크랩의 [Pinky Pro](https://github.com/pinklab-art/pinky_pro) 를 공식 저장소의 URDF 로 가져와 모터 · 센서 · 화면 · LED 까지 올립니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
 
