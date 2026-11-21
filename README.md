@@ -69,7 +69,7 @@ cd ~/nvidia-dli-lecture
 | 37. PL-2M 가져오기: 이동형 양팔 로봇을 Isaac Sim 으로 | [37_pl2m_import/README.md](37_pl2m_import/README.md) | `prepare_pl2m.sh` URDF 준비 · `import_pl2m.py` 가져오기 · 서 있기 · 팔꿈치 굽히기 |
 | 38. 핑크랩 부스 만들기: MuJoCo 장면을 Isaac Sim 으로 옮기기 | [38_pl2m_booth/README.md](38_pl2m_booth/README.md) | `make_booth.py` 부스 옮기기 · 사진 · PL-2M 과 컵 올리기 |
 | 39. PL-2M 움직이기: 바퀴 · 팔 · 그리퍼의 구동 값 | [39_pl2m_drive/README.md](39_pl2m_drive/README.md) | `pl2m_drive.py` 구동 값 · 접촉 설정(`tune_pl2m`) · 시험 5가지 · 부스 안 운전 |
-| 40. PL-2M 팔의 중력: 영향과 보상 | [40_pl2m_gravity/README.md](40_pl2m_gravity/README.md) | `pl2m_gravity.py` 중력 보상(`GravityCompensation`) · 바닥 하중 재기 · 시험 6가지 |
+| 40. PL-2M 팔의 중력: 영향과 보상 | [40_pl2m_gravity/README.md](40_pl2m_gravity/README.md) | `pl2m_gravity.py` 중력 토크의 수식 · 중력 보상(`GravityCompensation`) · 한쪽 팔만 보상해 비교 · 시험 8가지 |
 
 강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키우고, 강의 8 ~ 10 은 URDF 로 가져온 Carter 를 같은 순서(가져오기 → 조종 → 센서)로 다룹니다. 강의 11 ~ 13 은 핑크랩의 [Pinky Pro](https://github.com/pinklab-art/pinky_pro) 를 공식 저장소의 URDF 로 가져와 모터 · 센서 · 화면 · LED 까지 올립니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
 
