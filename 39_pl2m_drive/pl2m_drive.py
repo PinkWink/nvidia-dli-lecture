@@ -3,14 +3,15 @@
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test wheels      # 바퀴: 설정을 하나씩 더하며 직진 · 회전을 잼
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test arms        # 팔: 구동 값 세 가지로 자세를 바꿔 봄
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test gripper     # 그리퍼: 열고 닫기
-    ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test hold        # 팔을 움직일 때 로봇이 제자리를 지키는지 (모터 게인 10 과 100)
+    ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test hold        # 팔을 움직일 때 로봇이 제자리를 지키는지 (한 번에 · 1초에 걸쳐, 모터 게인 10 · 100)
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test step        # 부스 바닥판의 2 cm 턱을 내려갔다 올라오기
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py                    # 다 맞춘 로봇으로 직진 → 회전 → 팔 자세
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --booth --gui --keyboard     # 부스 안에서 W A S D 로 운전
 
 값의 출처: 저장소 pinklab_robotworld2026 의 MuJoCo 설정 (src/mobile_openarm_mujoco/config/mujoco.yaml · model.py)
-    바퀴 모터  velocity_gain 10 N·m·s/rad, max_torque 18 N·m          팔      kp 500 N·m/rad, kv 35 N·m·s/rad, 중력 보상
-      (속도 게인만 100 으로 올려 씀: 10 으로는 팔을 움직인 반동에 로봇이 밀리는 경우가 있었음)
+    바퀴 모터  velocity_gain 10 N·m·s/rad, max_torque 18 N·m          팔      kp 500 N·m/rad, kv 35 N·m·s/rad, 관절 토크로 중력 보상
+      (속도 게인만 100 으로 올려 씀: 10 은 제자리 회전이 5 % 느리고, 팔을 한 번에 움직인 뒤 로봇이 계속 밀렸음)
+      (중력 보상은 옮기지 않았음: 팔 링크의 중력을 꺼서 처짐만 없앰. 팔 12 kg 의 무게가 베이스에 실리지 않는 점이 원본과 다름)
     마찰       캐스터 0.002, 바퀴 1.2                                  그리퍼  kp 1800 N/m, kv 15 N·s/m, 최대 30 N
 USD 의 회전 관절 구동 값은 "도" 기준이라, 라디안 기준 값에 π/180 을 곱해 넣습니다.
 """
@@ -33,7 +34,7 @@ ARM_JOINTS = [f"openarm_{side}_joint{i}" for side in ("left", "right") for i in 
 FINGER_JOINTS = ["openarm_left_finger_joint1", "openarm_right_finger_joint1"]        # 둘째 손가락은 이것을 따라 움직인다
 WHEEL_RADIUS, WHEEL_DISTANCE = 0.0825, 0.4288       # 바퀴 반지름 · 좌우 바퀴 사이 거리 [m] (vicpinky_description 의 값)
 MAX_LINEAR, MAX_ANGULAR = 0.35, 0.7                 # 원본 설정의 속도 제한 [m/s], [rad/s]
-MOTOR_GAIN, MOTOR_TORQUE = 100.0, 18.0              # 바퀴 모터: 속도 게인 [N·m·s/rad] (원본은 10, --test hold 참고), 최대 토크 [N·m]
+MOTOR_GAIN, MOTOR_TORQUE = 100.0, 18.0              # 바퀴 모터: 속도 게인 [N·m·s/rad] (원본은 10, --test wheels · hold 참고), 최대 토크 [N·m]
 WHEEL_ARMATURE, WHEEL_WIDTH = 0.05, 0.01            # 바퀴 관절에 더하는 회전 관성 [kg·m²], 바퀴 충돌 모양의 폭 [m]
 CASTER_FRICTION, WHEEL_FRICTION = 0.002, 1.2
 ARM_KP, ARM_KV = 500.0, 35.0                        # 팔: [N·m/rad], [N·m·s/rad]
@@ -106,7 +107,7 @@ def set_friction(stage, links, value):
         UsdShade.MaterialBindingAPI.Apply(collisions).Bind(material, UsdShade.Tokens.strongerThanDescendants, "physics")
 
 
-def tune_wheels(stage, friction=True, armature=True, thin=True, motor=True):
+def tune_wheels(stage, friction=True, armature=True, thin=True, motor=True, gain=MOTOR_GAIN):
     """바퀴로 다닐 수 있게 하는 네 가지. 시험할 때는 하나씩 켠다."""
     if friction:
         set_friction(stage, CASTER_LINKS, CASTER_FRICTION)         # 1. 고정된 공 모양 캐스터가 바닥에서 미끄러지게
@@ -122,12 +123,16 @@ def tune_wheels(stage, friction=True, armature=True, thin=True, motor=True):
     if motor:
         set_friction(stage, WHEEL_LINKS, WHEEL_FRICTION)
         for name in WHEEL_JOINTS:                                   # 4. 모터의 속도 게인과 최대 토크
-            drive(stage, name).GetDampingAttr().Set(MOTOR_GAIN * PER_DEGREE)
+            drive(stage, name).GetDampingAttr().Set(gain * PER_DEGREE)
             drive(stage, name).GetMaxForceAttr().Set(MOTOR_TORQUE)
 
 
 def tune_arms(stage, gains=True, gravity_off=True):
-    """팔 관절의 구동 값을 원본 값으로 바꾸고, 팔 링크의 중력을 끈다 (실물 제어기의 중력 보상을 대신함)."""
+    """팔 관절의 구동 값을 원본 값으로 바꾸고, 팔 링크의 중력을 끈다.
+
+    중력 보상(관절이 팔 무게만큼의 토크를 더 냄)이 아니라 중력을 없애는 것이다. 팔이 처지지 않는 것은 같지만,
+    팔 무게가 베이스에 실리지 않는 점이 다르다.
+    """
     if gains:
         for name in ARM_JOINTS:
             drive(stage, name).GetStiffnessAttr().Set(ARM_KP * PER_DEGREE)
@@ -160,9 +165,30 @@ def set_wheel_velocity(stage, linear, angular):
         drive(stage, name).GetTargetVelocityAttr().Set(math.degrees(value))
 
 
-def set_arm_pose(stage, name):
-    for joint_name, target in zip(ARM_JOINTS, pose_degrees(name)):
+def set_arm_targets(stage, targets):
+    for joint_name, target in zip(ARM_JOINTS, targets):
         drive(stage, joint_name).GetTargetPositionAttr().Set(target)
+
+
+def set_arm_pose(stage, name):
+    """팔의 목표를 한 번에 바꾼다 (계단 입력). 팔이 관절의 속도 한계로 움직여 베이스를 찬다. 시험에서만 쓴다."""
+    set_arm_targets(stage, pose_degrees(name))
+
+
+def blend(begin, end, ratio):
+    """두 자세 사이의 목표. ratio 0 → 1 을 처음과 끝이 느린 곡선으로 바꿔 섞는다."""
+    s = min(max(ratio, 0.0), 1.0)
+    s = s * s * (3.0 - 2.0 * s)
+    return [a + (b - a) * s for a, b in zip(begin, end)]
+
+
+def move_arms(stage, sim, name, seconds):
+    """팔의 목표를 seconds 에 걸쳐 조금씩 옮긴다 (Play 중에 부른다). 뒤 강의에서는 MoveIt 의 궤적이 이 일을 한다."""
+    begin = [drive(stage, joint_name).GetTargetPositionAttr().Get() or 0.0 for joint_name in ARM_JOINTS]
+    end, start = pose_degrees(name), sim.time
+    while sim.time - start < seconds:
+        sim.app.update()
+        set_arm_targets(stage, blend(begin, end, (sim.time - start) / seconds))
 
 
 def set_gripper(stage, opening):
@@ -230,7 +256,8 @@ def test_wheels():
              ("1. 캐스터 마찰 0.002", dict(armature=False, thin=False, motor=False)),
              ("2. + 바퀴 관절 관성 0.05", dict(thin=False, motor=False)),
              ("3. + 바퀴 충돌 폭 1 cm", dict(motor=False)),
-             ("4. + 모터 값 · 바퀴 마찰 1.2", dict())]             # 모터 값: 속도 게인 100, 최대 토크 18
+             ("4. + 모터 값 · 바퀴 마찰 1.2", dict()),             # 모터 값: 속도 게인 100, 최대 토크 18
+             ("(4 에서 속도 게인만 원본 10)", dict(gain=10.0))]
     print(f"{'설정':<26} {'직진 3초[m]':>10} {'1초 뒤 속도':>10} {'회전 3초[°]':>10} {'1초 뒤 속도':>10}", flush=True)
     print(f"{'(기대)':<26} {0.3 * 3:>10.2f} {0.30:>10.2f} {math.degrees(0.7) * 3:>10.1f} {math.degrees(0.7):>10.1f}", flush=True)
     for name, options in cases:
@@ -303,9 +330,12 @@ def test_gripper():
 
 
 def test_hold():
-    """부스 바닥판과 같은 판 위에서 1 m 직진 → 90° 회전 → 팔을 운반 자세로. 그 뒤 로봇이 제자리에 있는지 본다."""
-    print(f"{'모터 속도 게인':<14} {'직진[m]':>8} {'회전[°]':>8}   팔을 움직이고 2.5초 뒤부터 3초 동안 밀린 거리", flush=True)
-    for gain in (10.0, MOTOR_GAIN):
+    """부스 바닥판과 같은 판 위에서 1 m 직진 → 90° 회전 → 멈추고 팔을 운반 자세로.
+
+    팔을 한 번에 움직일 때와 1초에 걸쳐 움직일 때, 모터 게인 10(원본)과 100 일 때 로봇이 밀린 거리를 잰다.
+    """
+    print(f"{'모터 게인':<8} {'팔 움직임':<8} {'직진[m]':>7} {'회전[°]':>7} {'어깨 최고 속도[°/s]':>16} {'0~1.5초에 밀림[mm]':>16} {'그 뒤 4초[mm]':>12}", flush=True)
+    for gain, seconds in ((10.0, 0.0), (MOTOR_GAIN, 0.0), (10.0, 1.0), (MOTOR_GAIN, 1.0)):
         stage = fresh_robot(height=0.07)
         slab = UsdGeom.Cube.Define(stage, "/World/Slab")
         slab.CreateSizeAttr(1.0)
@@ -319,8 +349,8 @@ def test_hold():
         sim = Sim(app)
         sim.play()
         sim.run(1.0)
-        set_arm_pose(stage, "transport")
-        sim.run(2.0)
+        move_arms(stage, sim, "transport", 1.5)
+        sim.run(0.5)
         x0, y0, _, yaw0 = pose_of(body)
         set_wheel_velocity(stage, 0.25, 0.0)
         sim.run(4.0)
@@ -329,12 +359,22 @@ def test_hold():
         sim.run(math.pi)
         yaw1 = pose_of(body)[3]
         set_wheel_velocity(stage, 0.0, 0.0)
-        set_arm_pose(stage, "carry")
-        sim.run(2.5)
+        begin, end = pose_degrees("transport"), pose_degrees("carry")
+        shoulder, fastest, during = "openarm_left_joint2", 0.0, None      # 가장 많이 도는 관절 (136°)
         xa, ya, _, _ = pose_of(body)
-        sim.run(3.0)
+        start, angle, clock = sim.time, joint_position(stage, shoulder), sim.time
+        while sim.time - start < 5.5:
+            set_arm_targets(stage, blend(begin, end, (sim.time - start) / seconds if seconds else 1.0))
+            sim.app.update()
+            now = joint_position(stage, shoulder)
+            if sim.time > clock:
+                fastest = max(fastest, abs(now - angle) / (sim.time - clock))
+            angle, clock = now, sim.time
+            if during is None and sim.time - start >= 1.5:
+                during = pose_of(body)
         xb, yb, _, _ = pose_of(body)
-        print(f"{gain:<14g} {math.hypot(x1 - x0, y1 - y0):>8.3f} {yaw1 - yaw0:>8.1f}   {math.hypot(xb - xa, yb - ya) * 1000:.1f} mm", flush=True)
+        print(f"{gain:<10g} {'한 번에' if not seconds else f'{seconds:g}초에 걸쳐':<10} {math.hypot(x1 - x0, y1 - y0):>7.3f} {yaw1 - yaw0:>7.1f} {fastest:>16.0f} "
+              f"{math.hypot(during[0] - xa, during[1] - ya) * 1000:>16.1f} {math.hypot(xb - during[0], yb - during[1]) * 1000:>12.1f}", flush=True)
         sim.stop()
 
 
@@ -366,10 +406,10 @@ def test_step():
 def demo(stage, sim):
     """다 맞춘 로봇: 팔을 주행 자세로 → 1 m 직진 → 왼쪽으로 90° → 팔을 운반 자세로 → 그리퍼 열고 닫기."""
     body = stage.GetPrimAtPath(BODY)
-    steps = [("팔: 주행 자세", lambda: set_arm_pose(stage, "transport"), 2.0),
+    steps = [("팔: 주행 자세", lambda: move_arms(stage, sim, "transport", 1.5), 0.5),
              ("직진 0.25 m/s", lambda: set_wheel_velocity(stage, 0.25, 0.0), 4.0),
              ("왼쪽으로 회전 0.5 rad/s", lambda: set_wheel_velocity(stage, 0.0, 0.5), math.pi),
-             ("멈추고 팔: 운반 자세", lambda: (set_wheel_velocity(stage, 0.0, 0.0), set_arm_pose(stage, "carry")), 2.5),
+             ("멈추고 팔: 운반 자세", lambda: (set_wheel_velocity(stage, 0.0, 0.0), move_arms(stage, sim, "carry", 2.0)), 0.5),
              ("그리퍼 열기", lambda: set_gripper(stage, GRIP_OPEN), 1.0),
              ("그리퍼 닫기", lambda: set_gripper(stage, 0.0), 1.0)]
     x0, y0, _, yaw0 = pose_of(body)
@@ -409,7 +449,7 @@ if __name__ == "__main__":
     sim.play()
     sim.run(1.0)
     if args.keyboard:
-        set_arm_pose(stage, "transport")
+        move_arms(stage, sim, "transport", 1.5)
         print("뷰포트를 한 번 클릭한 뒤 W(앞) S(뒤) A(왼쪽) D(오른쪽) 로 운전합니다. 창을 닫으면 끝납니다.", flush=True)
         sim.wait_until_closed()
     else:
