@@ -34,6 +34,7 @@
 | 6 | 한쪽 팔에만 보상을 넣으면 두 팔이 어떻게 다른가 (위치, 토크) |
 | 7 ~ 9 | 다른 방법과의 비교, 솔버 반복 횟수, 틀리기 쉬운 것 |
 | 10 ~ 12 | 베이스에 실리는 무게, 움직이는 동안, 약한 팔 시연 |
+| 13 | 배경: 상용 로봇팔은 중력을 어떻게 처리하나 |
 
 ## 2. 수식: 중력이 관절에 만드는 토크
 
@@ -505,7 +506,71 @@ def prepare(stage):
 - 보상이 있으면 구동은 무게를 버티지 않아도 됨. 그래서 게인을 낮춰도 자세를 지킴.
 - 게인을 낮출 수 있다는 것은 팔을 부드럽게 만들 수 있다는 뜻임. 이 강의에서 부드러운 팔을 시험하지는 않았음.
 
-## 13. 뒤 강의에서 쓰는 방법
+## 13. 배경: 상용 로봇팔은 중력을 어떻게 처리하나
+
+### 사용자가 중력을 신경 쓰지 않는 이유
+
+- 산업용 로봇팔과 협동로봇의 사용자는 위치와 경로만 지시함. 관절 토크를 직접 다루지 않음.
+- 중력을 버티는 일은 제조사가 만든 제어기 안에서 처리됨. 아래 제조사 문서에서 확인한 내용임.
+- 대신 사용자가 넣어 줘야 하는 값이 둘 있음. 로봇을 설치한 방향과 손끝에 단 부하임.
+
+### 제조사 문서에서 확인한 것
+
+| 로봇 | 문서에 적힌 것 |
+|---|---|
+| Universal Robots (협동로봇) | 부하의 질량 · 무게중심 설정을 Freedrive · 조그 · 프로그램 실행 중 관절 모터를 제어하는 데 씀. 설치 방향 설정으로 중력의 방향을 앎 |
+| Franka (연구용 협동로봇) | 제어 인터페이스에 "중력과 마찰이 보상된 관절 토크 명령" 이 있음 |
+| ABB (산업용) | LoadIdentify 가 툴과 집은 물체의 질량 · 무게중심 · 관성 모멘트를 찾아 줌 |
+| FANUC (산업용) | Payload Identification 이 로봇을 움직여 부하를 추정함. 정확한 부하가 충돌 감지 · 속도 · 위치 결정을 개선한다고 적음 |
+| KUKA (대형 산업용, 특허) | 가장 큰 토크가 걸릴 수 있는 2축에 가스식 · 유공압식 무게 균형 장치를 다는 구성 |
+
+- 방법은 둘로 나뉨. 제어기가 계산해서 보상하는 것과, 기계 장치로 무게를 받치는 것임.
+
+### 넣어야 하는 값 1: 설치 방향
+
+- UR 은 로봇을 바닥 · 벽 · 천장 가운데 어떻게 달았는지를 설정에 넣음 (바닥 0°, 벽 90°, 천장 180°). 이 값으로 로봇이 중력의 방향을 앎.
+- 바닥에 세운 로봇에는 내부적으로 `set_gravity(0.0, 0.0, 9.82)` 가 들어감.
+- 이 강의 수식의 ẑ(위쪽)와 g 에 해당하는 값임.
+
+### 넣어야 하는 값 2: 손끝의 부하
+
+- UR 문서는 부하의 질량과 무게중심을 항상 정확히 넣고, 물체를 집거나 내려놓을 때마다 바꾸라고 함. 틀리면 잘못된 움직임과 보호 정지로 이어질 수 있다고 적혀 있음.
+- ABB 의 LoadIdentify 와 FANUC 의 Payload Identification 은 이 값을 사용자가 재지 않아도 로봇이 찾게 해 주는 기능임.
+- 이 강의 수식의 mᵢ 와 cᵢ 에 손에 든 물체가 하나 더 붙는 것임. 이 강의의 한계(손에 든 물체는 보상에 없음)와 같은 문제임.
+
+### 기계로 받치는 방법
+
+- KUKA 의 특허 문서는 로커(2축)에 가스식이나 유공압식 무게 균형 장치를 다는 산업용 로봇을 설명함. 코일 스프링을 쓰는 장치도 언급함.
+- 장치가 무게의 일부를 받치면 모터가 내야 하는 토크가 그만큼 줄어듦.
+- 특허 한 건에 적힌 구성임. 요즘 제품들이 어떻게 되어 있는지는 조사하지 않았음.
+
+### 이 강의와 견주어 보면
+
+| | 상용 로봇팔 | 이 강의의 PL-2M |
+|---|---|---|
+| 중력을 처리하는 곳 | 제조사의 제어기 안 | `GravityCompensation` (직접 넣음) |
+| 사용자가 주는 정보 | 설치 방향, 손끝의 부하 | 장면의 중력, URDF 의 질량 · 무게중심 |
+| 사용자가 보내는 명령 | 위치와 경로 | 위치와 경로 (다음 강의의 ROS 2 · MoveIt) |
+
+- 사용자가 신경 쓰지 않아도 되는 것은 중력이 없어서가 아니라, 제어기가 대신 처리하기 때문임.
+- 시뮬레이터에 로봇을 직접 올리는 쪽은 그 제어기의 일을 직접 넣어야 함. 이 강의의 `GravityCompensation` 이 그 일임.
+- 제조사 제어기 안의 계산이 이 강의의 수식과 같은지는 확인하지 못했음. 문서에 적힌 범위만 옮겼음.
+
+### 출처
+
+| 내용 | 문서 |
+|---|---|
+| UR: 부하 설정이 쓰이는 곳, 틀렸을 때 | [How to change payload and center of gravity settings using URScript](https://www.universal-robots.com/articles/ur/programming/how-to-change-payload-and-center-of-gravity-settings-using-urscript/) |
+| UR: 집고 놓을 때마다 부하 갱신 | [Important Deployment Points](https://universal-robots.com/articles/ur/robot-care-maintenance/important-deployment-points) |
+| UR: 설치 방향과 중력의 방향 | [Power Up the Robot](https://www.universal-robots.com/manuals/EN/HTML/SW10_15/Content/guide-inst_man_g-series/first_boot.htm), [7th axis gravity settings](https://universal-robots.com/articles/ur/programming/7th-axis-gravity-settings) |
+| Franka: 중력 · 마찰이 보상된 토크 명령 | [Franka Control Interface Overview](https://frankarobotics.github.io/docs/overview.html) |
+| ABB: LoadIdentify | [OmniCore 운영 설명서 6.9.6 (ManualsLib 사본)](https://www.manualslib.com/manual/2131954/Abb-Omnicore.html?page=153) |
+| FANUC: Payload Identification | [Payload Identification](https://www.fanucamerica.com/products/software/robot/payload-identification) |
+| KUKA: 무게 균형 장치 | [US20110072930A1 Industrial Robot With A Weight Counterbalance System](https://patents.google.com/patent/US20110072930A1/en) |
+
+- 2026년 11월에 열어 본 문서임. 문장을 직접 대조한 것만 적었음.
+
+## 14. 뒤 강의에서 쓰는 방법
 
 ### 달라지는 것
 
@@ -533,7 +598,7 @@ compensation = GravityCompensation()
 
 - ROS 2 로 관절을 움직이는 그래프와 함께 써도 되는지는 아직 확인하지 않았음. 다음 강의에서 확인함.
 
-## 14. 해 볼 것
+## 15. 해 볼 것
 
 ### 직접 바꿔 보기
 
@@ -542,7 +607,7 @@ compensation = GravityCompensation()
 - `STIFF_KP` 를 5000 으로 올리고 `--test sag` 의 셋째 줄이 어떻게 바뀌는지 보기.
 - `SOFT_KP` 를 20 으로 낮추고 시연을 돌려, 보상이 없는 팔이 어디까지 내려가는지 보기.
 
-## 15. 정리
+## 16. 정리
 
 ### 기억할 것
 

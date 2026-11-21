@@ -85,7 +85,7 @@ class GravityCompensation:
         self.physics = omni.physics.tensors.create_simulation_view("numpy")
         self.robot = self.physics.create_articulation_view(ROOT)
         self.names = list(self.robot.shared_metatype.dof_names)
-        self.dofs = np.array([self.names.index(name) for name in joints])
+        self.dofs = np.array([self.names.index(name) for name in joints], dtype=int)
         # 바닥에 고정되지 않은 로봇은 앞 6칸이 뿌리(힘 3 + 모멘트 3)이고, 관절은 그 뒤에 온다
         self.shift = (0 if self.robot.shared_metatype.fixed_base else 6) if shift is None else shift
         self.enabled, self.coriolis = True, coriolis
