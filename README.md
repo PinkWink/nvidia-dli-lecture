@@ -73,6 +73,9 @@ cd ~/nvidia-dli-lecture
 | 41. PL-2M 을 ROS 2 에 연결하기: 궤적은 ROS 2 에서, 중력 보상은 로봇 안에서 | [41_pl2m_ros2/README.md](41_pl2m_ros2/README.md) | `pl2m_ros2.py` ROS 2 그래프 + 목표 보간기 + 중력 보상 · `trajectory_server.py` 궤적 액션 서버 · `send_pose.py` · `check_ripple.py` |
 | 42. MoveIt 으로 팔의 경로 계획하기: 목표만 주면 부딪히지 않는 길을 찾음 | [42_pl2m_moveit/README.md](42_pl2m_moveit/README.md) | `prepare_moveit.sh` · `moveit.launch.py` · `move_arm.py` 관절 · 자세 목표 · `add_obstacle.py` 장애물 · `pl2m_moveit.py` |
 | 43. 컵 집기: 그리퍼로 쥐고, 들고, 손에 든 무게를 알리기 | [43_pl2m_pick/README.md](43_pl2m_pick/README.md) | `pl2m_pick.py` 탁자 · 컵 · 손가락 설정 · 든 무게의 보상 · `pick_cup.py` 집는 순서 · `scene.py` |
+| 44. 부스에서 Nav2 로 이동하기: 라이다 · 바퀴 오도메트리 · 도착 오차 | [44_pl2m_nav/README.md](44_pl2m_nav/README.md) | `pl2m_nav.py` 부스 + 라이다 + 바퀴 오도메트리 · `make_map.py` · `nav2.launch.py` · `go_to.py` 목적지와 도착 오차 |
+| 45. ArUco 마커로 도킹하기: Nav2 모드와 도킹 모드를 오가는 법 | [45_pl2m_dock/README.md](45_pl2m_dock/README.md) | `pl2m_dock.py` 마커 6장 + 앞 카메라 · `aruco_node.py` 마커 찾기 · `dock.py` 모드를 바꿔 가며 도킹 |
+| 46. 컵을 집어 나르기: Nav2 · 도킹 · 팔을 모드로 잇기 | [46_pl2m_mission/README.md](46_pl2m_mission/README.md) | `pl2m_mission.py` 장면 합치기 · `layout.py` 스테이션의 배치 · `mission.py` Nav2 → 도킹 → 집기 → 놓기 |
 
 강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키우고, 강의 8 ~ 10 은 URDF 로 가져온 Carter 를 같은 순서(가져오기 → 조종 → 센서)로 다룹니다. 강의 11 ~ 13 은 핑크랩의 [Pinky Pro](https://github.com/pinklab-art/pinky_pro) 를 공식 저장소의 URDF 로 가져와 모터 · 센서 · 화면 · LED 까지 올립니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
 

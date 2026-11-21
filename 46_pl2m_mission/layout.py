@@ -1,0 +1,59 @@
+"""스테이션에 무엇이 어디 있는지: 컵 · 놓을 자리 · 팔이 피해야 할 가구. ROS 2 쪽(mission.py)이 쓴다.
+
+값은 원본 저장소의 worlds/booth.yaml (objects · scene) 과 warehouse_skills/config/skills.yaml (grasp · place · carry) 에서 가져왔다.
+좌표는 부스 좌표계(지도와 같음)다. 로봇은 도킹한 뒤 이 좌표를 자기 기준으로 바꿔 쓴다 (to_base).
+"""
+import math
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+for folder in ("44_pl2m_nav", "45_pl2m_dock"):
+    sys.path.insert(0, os.path.join(HERE, "..", folder))
+from booth import STATIONS
+from markers import docked_pose
+
+DECK_TOP = 0.02                               # 바닥판의 높이 [m]. 로봇이 이 위에 서 있으므로, 로봇 기준 높이 = 부스 좌표의 높이 - 0.02
+CUP_DIAMETER, CUP_HEIGHT, CUP_MASS = 0.05, 0.09, 0.2
+CUPS = {                                      # 음료대 위의 컵: 가운데 (x, y, z)
+    "cup_pink":   (7.50, -1.72, 0.795),
+    "cup_blue":   (7.65, -1.72, 0.795),
+    "cup_yellow": (7.80, -1.72, 0.795),
+}
+# 놓는 자리: 든 팔의 정면. 축에서 옆으로 15 cm (왼팔이면 왼쪽), 가장자리에서 9 cm 안쪽. 상판 4 mm 위에서 놓는다.
+# 원본은 가운데부터 채우고(옆으로 0 · ±10 cm) 가장자리에서 5.5 cm 안쪽에 놓는다. 그 자리는 이 강의의 설정에서 팔이 닿지 않았다 (강의 46 의 5절).
+PLACE = {"from_edge": 0.09, "lateral": 0.15, "drop_z": 0.004}
+GRASP = {"pre_offset_x": -0.10, "z_offset": 0.02, "lift_z": 0.04, "retreat_x": -0.14,
+         "open": 0.044, "close": 0.012, "close_min": 0.016, "close_max": 0.028}                       # 강의 43 과 같은 값
+CARRY_TIP = (0.34, 0.153, 0.86)               # 운반 자세(carry)일 때 왼손 손끝의 자리 (로봇 기준). 오른손은 y 의 부호가 반대
+
+# 팔이 피해야 할 가구: 스테이션 → [(이름, 모양, 가운데, 크기)]. 상자의 크기는 (x, y, z), 원기둥은 (반지름, 높이)
+FURNITURE = {
+    "drinks":    [("drink_stand", "box", (7.65, -1.60, 0.375), (0.62, 0.42, 0.75))],
+    "consult_1": [("consult_1_top", "cylinder", (6.28, -1.90, 0.705), (0.30, 0.03)),
+                  ("consult_1_post", "cylinder", (6.28, -1.90, 0.35), (0.05, 0.70)),
+                  ("consult_1_board", "box", (6.00, -1.90, 0.30), (0.02, 0.50, 0.44))],
+    "consult_2": [("consult_2_top", "cylinder", (6.38, -4.43, 0.705), (0.30, 0.03)),
+                  ("consult_2_post", "cylinder", (6.38, -4.43, 0.35), (0.05, 0.70)),
+                  ("consult_2_board", "box", (6.10, -4.43, 0.30), (0.02, 0.50, 0.44))],
+}
+
+
+def to_base(station, point, side=0.0, turn=0.0):
+    """부스 좌표의 점 → 도킹한 로봇 기준의 (앞, 왼쪽, 높이).
+
+    로봇은 마커 면에서 0.43 m 떨어져 서 있다고 본다. side · turn 은 도킹이 알려 준 값이다:
+    축이 로봇의 왼쪽으로 벗어난 거리 [m], 축과 나란해지려면 로봇이 돌아야 하는 각 [rad].
+    """
+    x0, y0, yaw = docked_pose(station)
+    dx, dy = point[0] - x0, point[1] - y0
+    ahead = dx * math.cos(yaw) + dy * math.sin(yaw)                  # 축을 따라 앞으로
+    left = -dx * math.sin(yaw) + dy * math.cos(yaw) + side           # 축에서 왼쪽으로 + 로봇이 축에서 벗어난 만큼
+    return ahead * math.cos(turn) - left * math.sin(turn), ahead * math.sin(turn) + left * math.cos(turn), point[2] - DECK_TOP
+
+
+def slot(station, side):
+    """side("left" · "right") 팔이 놓을 자리의 부스 좌표: 컵의 가운데 (x, y, z)."""
+    (ex, ey), yaw, top = STATIONS[station]["edge"], STATIONS[station]["goal"][2], STATIONS[station]["top"]
+    inside, left = PLACE["from_edge"], PLACE["lateral"] if side == "left" else -PLACE["lateral"]
+    return (ex + inside * math.cos(yaw) - left * math.sin(yaw), ey + inside * math.sin(yaw) + left * math.cos(yaw), top + CUP_HEIGHT / 2)
