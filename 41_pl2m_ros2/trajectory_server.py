@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-"""강의 41: 궤적 서버. MoveIt 이 보내는 궤적(액션)을 받아, 시간에 맞춰 관절의 목표 위치를 /joint_command 로 내보냅니다.
-
-목표는 /joint_states 가 올 때마다 하나씩 보냅니다. 시뮬레이터가 한 스텝 나아갈 때마다 목표도 한 번 바뀌게 하려는 것입니다.
-Isaac Sim 의 구독 노드는 프레임마다 메시지를 하나씩 꺼내 씁니다. 그래서 프레임당 정확히 한 개를 보내야 목표가 고르게 바뀝니다.
-(벽시계로 보내면 주파수를 60 Hz 로 맞춰도 관절 토크가 출렁였습니다. --wall HZ 로 그 방법을 볼 수 있습니다.)
+"""강의 41: 궤적 서버. MoveIt 이 보내는 궤적(액션)을 받아, 정해진 간격으로 관절의 목표 위치를 /joint_command 로 내보냅니다.
 
     source /opt/ros/jazzy/setup.bash
-    python3 41_pl2m_ros2/trajectory_server.py
-    python3 41_pl2m_ros2/trajectory_server.py --wall 50  # 비교용: 벽시계로 50 Hz 씩 보냄 (60 · 120 · 240 도 해 볼 것)
+    python3 41_pl2m_ros2/trajectory_server.py              # 50 Hz 로 보냄
+    python3 41_pl2m_ros2/trajectory_server.py --rate 20    # 다른 간격으로
+    python3 41_pl2m_ros2/trajectory_server.py --sync       # 비교용: /joint_states 가 올 때마다 하나씩 보냄
 
 액션 (원본 MuJoCo 시뮬레이터가 내는 것과 같은 이름. MoveIt 설정 moveit_controllers.yaml 이 이 이름을 찾는다)
     /left_joint_trajectory_controller/follow_joint_trajectory     control_msgs/action/FollowJointTrajectory
@@ -15,7 +12,9 @@ Isaac Sim 의 구독 노드는 프레임마다 메시지를 하나씩 꺼내 씁
     /left_gripper_controller/gripper_cmd                          control_msgs/action/GripperCommand
     /right_gripper_controller/gripper_cmd
 
-이 노드는 위치만 보냅니다. 팔의 무게를 버티는 토크(중력 보상)는 시뮬레이터가 넣습니다.
+이 노드는 위치만 보냅니다. 보내는 간격은 이쪽에서 정하고, 시뮬레이터의 주기에 맞추지 않습니다.
+받은 목표 사이를 잇는 일(보간)과 팔의 무게를 버티는 토크(중력 보상)는 시뮬레이터가 합니다.
+메시지의 header.stamp 에는 "이 목표가 궤적의 어느 시각의 것인지" 를 적습니다. 받는 쪽이 이것으로 보간합니다.
 """
 import math
 import sys
@@ -74,19 +73,19 @@ class Trajectory:
 
 
 class TrajectoryServer(Node):
-    def __init__(self, wall=0.0):
+    def __init__(self, rate=50.0):
         super().__init__("pl2m_trajectory_server", parameter_overrides=[Parameter("use_sim_time", value=True)])
         self.lock = threading.Lock()
         self.measured, self.effort = {}, {}        # /joint_states 에서 읽은 지금 위치 · 힘
         self.targets = {}                          # 내보내는 목표 위치 (한 번이라도 명령한 관절만)
         self.active = {}                           # 실행 중인 궤적: 제어기 이름 → 상태
         self.stamp = 0.0                           # 마지막 /joint_states 의 시각 (시뮬레이션 시간)
-        self.wall = wall
+        self.rate = rate                           # 0 이면 /joint_states 가 올 때마다 보낸다
         group = ReentrantCallbackGroup()
         self.command = self.create_publisher(JointState, "/joint_command", 10)
         self.create_subscription(JointState, "/joint_states", self.on_joint_states, 10, callback_group=group)
-        if wall:                                   # 비교용: 시뮬레이터의 박자와 상관없이 벽시계로 보냄
-            threading.Thread(target=self.wall_loop, args=(1.0 / wall,), daemon=True).start()
+        if rate:                                   # 정해진 간격으로 보낸다. 시뮬레이터의 주기와 맞추지 않는다
+            threading.Thread(target=self.wall_loop, args=(1.0 / rate,), daemon=True).start()
         self.servers = []
         for side in ("left", "right"):
             arm = [f"openarm_{side}_joint{i}" for i in range(1, 8)]
@@ -102,18 +101,18 @@ class TrajectoryServer(Node):
                 goal_callback=lambda request, key=side + "_gripper": self.check_gripper(request, key),
                 cancel_callback=lambda handle: CancelResponse.ACCEPT, callback_group=group))
         self.busy = set()
-        self.get_logger().info("궤적 서버 준비됨: 팔 2 · 그리퍼 2" + (f" (벽시계 {wall:g} Hz)" if wall else " (/joint_states 에 맞춰 보냄)"))
+        self.get_logger().info("궤적 서버 준비됨: 팔 2 · 그리퍼 2" + (f" ({rate:g} Hz 로 보냄)" if rate else " (/joint_states 에 맞춰 보냄)"))
 
     def on_joint_states(self, msg):
         with self.lock:
             self.measured.update(zip(msg.name, msg.position))
             self.effort.update(zip(msg.name, msg.effort))
             self.stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
-        if not self.wall:
-            self.step()                            # 시뮬레이터가 한 스텝 나아갈 때마다 목표를 한 번 보낸다
+        if not self.rate:
+            self.step()                            # --sync: 시뮬레이터가 한 스텝 나아갈 때마다 목표를 한 번 보낸다
 
     def wall_loop(self, period):
-        """벽시계로 period 마다 step 을 부른다. 밀리지 않게 다음 시각을 정해 두고 그때까지 잔다."""
+        """period 마다 step 을 부른다. 밀리지 않게 다음 시각을 정해 두고 그때까지 잔다."""
         due = time.perf_counter()
         while rclpy.ok():
             self.step()
@@ -129,7 +128,7 @@ class TrajectoryServer(Node):
             if not self.targets:
                 return
             msg = JointState()
-            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.header.stamp.sec, msg.header.stamp.nanosec = int(now), int((now % 1.0) * 1e9)   # 이 목표의 시각 (시뮬레이션 시간)
             msg.name = list(self.targets)
             msg.position = [float(value) for value in self.targets.values()]
         self.command.publish(msg)                  # velocity · effort 는 비워 둔다. 위치만 보낸다
@@ -255,14 +254,17 @@ class TrajectoryServer(Node):
 
 def main():
     rclpy.init()
-    wall = float(sys.argv[sys.argv.index("--wall") + 1]) if "--wall" in sys.argv else 0.0      # 0 = /joint_states 에 맞춤
-    node = TrajectoryServer(wall=wall)
+    rate = float(sys.argv[sys.argv.index("--rate") + 1]) if "--rate" in sys.argv else 50.0
+    node = TrajectoryServer(rate=0.0 if "--sync" in sys.argv else rate)
     executor = MultiThreadedExecutor(num_threads=8)
     executor.add_node(node)
     try:
         executor.spin()
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
+    except Exception:                              # Ctrl+C 로 끝나는 도중에 나는 오류는 넘긴다
+        if rclpy.ok():
+            raise
 
 
 if __name__ == "__main__":

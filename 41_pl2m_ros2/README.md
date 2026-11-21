@@ -34,14 +34,14 @@
 
 ### 역할 나누기
 
-- ROS 2 쪽은 어디로 갈지를 정함. 궤적을 시간에 맞춰 목표 위치로 바꿔 `/joint_command` 로 보냄.
-- Isaac Sim 쪽은 어떻게 버틸지를 맡음. 위치 구동이 목표를 따라가고, `GravityCompensation` 이 무게만큼의 토크를 더함.
+- ROS 2 쪽은 어디로 갈지를 정함. 궤적을 목표 위치로 바꿔, 자기가 정한 간격(50 Hz)으로 `/joint_command` 에 보냄.
+- Isaac Sim 쪽은 로봇의 제어기 노릇을 함. 받은 목표 사이를 자기 주기로 잇고(보간기), 위치 구동이 따라가고, `GravityCompensation` 이 무게만큼의 토크를 더함.
 
 ### 이 강의에서 만드는 것
 
 | 파일 | 어디서 도나 | 하는 일 |
 |---|---|---|
-| `pl2m_ros2.py` | Isaac Sim | ROS 2 그래프 셋 + 중력 보상 |
+| `pl2m_ros2.py` | Isaac Sim | ROS 2 그래프 셋 + 보간기 + 중력 보상 |
 | `trajectory_server.py` | ROS 2 | 궤적 액션을 받아 `/joint_command` 를 냄 |
 | `send_pose.py` | ROS 2 | 정해 둔 자세로 가는 궤적을 보냄 (MoveIt 이 할 일을 손으로) |
 | `check_ripple.py` | 터미널 | 기록에서 목표와 토크가 고르게 바뀌었는지 읽음 |
@@ -60,7 +60,7 @@ source /opt/ros/jazzy/setup.bash
 ```
 
 - `source` 를 Isaac Sim 보다 먼저 함. 강의 14 와 같음.
-- `준비됨: 중력 보상 = both. 끝내려면 Ctrl+C` 가 나오면 준비된 것임. 창으로 보려면 `--gui`, 부스 안에서 하려면 `--booth` 를 붙임.
+- `준비됨: 중력 보상 = both, 목표 = 보간. 끝내려면 Ctrl+C` 가 나오면 준비된 것임. 창으로 보려면 `--gui`, 부스 안에서 하려면 `--booth` 를 붙임.
 
 ### 주고받는 토픽
 
@@ -74,32 +74,31 @@ source /opt/ros/jazzy/setup.bash
 
 - `/cmd_vel` 과 상태를 내는 그래프는 강의 14 의 Pinky Pro 와 같은 구성임. 새로운 것은 `/joint_command` 임.
 
-### 그래프: /joint_command → 관절
+### 그래프: /joint_command 받기
 
 ```python
+nodes = [("OnPlaybackTick", "omni.graph.action.OnPlaybackTick"),
+         ("Context", "isaacsim.ros2.bridge.ROS2Context"),
+         ("SubscribeJointState", "isaacsim.ros2.bridge.ROS2SubscribeJointState")]
+values = [("SubscribeJointState.inputs:topicName", "joint_command")]
 connects = [("OnPlaybackTick.outputs:tick", "SubscribeJointState.inputs:execIn"),
-            ("OnPlaybackTick.outputs:tick", "ArticulationController.inputs:execIn"),
-            ("Context.outputs:context", "SubscribeJointState.inputs:context"),
-            ("SubscribeJointState.outputs:jointNames", "ArticulationController.inputs:jointNames"),
-            ("SubscribeJointState.outputs:positionCommand", "ArticulationController.inputs:positionCommand")]
+            ("Context.outputs:context", "SubscribeJointState.inputs:context")]
 ```
 
-- ROS2 Subscribe JointState 노드가 메시지를 받고, Articulation Controller 가 이름이 적힌 관절의 목표 위치를 바꿈.
-- **위치만 이음.** 속도와 힘(effort) 칸은 잇지 않음. 이유는 7절에서 봄.
+- ROS2 Subscribe JointState 노드가 메시지를 받음. 받은 값을 관절에 넣는 일은 그래프가 아니라 보간기가 함 (6절).
+- 메시지의 위치만 씀. 속도와 힘(effort) 칸은 쓰지 않음. 이유는 7절에서 봄.
 
-### 중력 보상은 Play 뒤에
+### 보간기와 중력 보상은 Play 뒤에
 
 ```python
-prepare_pl2m(stage)                                  # 팔 링크의 중력을 켜 둔다 (강의 40)
-add_ros2(args.wire_effort)
-sim = Sim(app)
 sim.play()
 sim.run(1.0)
 joints = {"both": ARM_JOINTS, "left": LEFT_ARM, "none": []}[args.compensate]
 compensation = GravityCompensation(joints=joints)    # 보상은 시뮬레이터 안에서. ROS 2 는 위치만 보낸다
+interpolator = None if direct else JointCommandInterpolator(sim)   # 받은 목표 사이를 물리 스텝마다 보간
 ```
 
-- 강의 40 의 클래스를 그대로 씀. ROS 2 그래프와는 따로 돌고, 물리 스텝마다 토크를 더함.
+- 둘 다 물리 스텝마다 도는 파이썬 코드임. 하나는 관절의 목표 위치를, 하나는 관절에 더하는 토크를 넣음.
 - `--compensate left` 는 왼팔만, `none` 은 보상 없이 실행함. 비교에 씀.
 
 ### 익스텐션을 켠 뒤 한 번 진행
@@ -123,7 +122,7 @@ source /opt/ros/jazzy/setup.bash
 python3 41_pl2m_ros2/trajectory_server.py
 ```
 
-- `궤적 서버 준비됨: 팔 2 · 그리퍼 2 (/joint_states 에 맞춰 보냄)` 가 나옴.
+- `궤적 서버 준비됨: 팔 2 · 그리퍼 2 (50 Hz 로 보냄)` 가 나옴.
 
 ### 터미널 3: 토픽과 액션 확인
 
@@ -147,7 +146,7 @@ ros2 topic hz /joint_states
 /left_joint_trajectory_controller/follow_joint_trajectory
 /right_gripper_controller/gripper_cmd
 /right_joint_trajectory_controller/follow_joint_trajectory
-average rate: 59.779
+average rate: 59.776
 ```
 
 - 토픽 여섯 개는 Isaac Sim 이, 액션 네 개는 궤적 서버가 내는 것임. `/parameter_events` 와 `/rosout` 은 뺐음.
@@ -179,21 +178,21 @@ if self.velocities is None:
 - 궤적은 "몇 초에 어느 자세" 를 적은 점들임. 점과 점 사이의 시각에는 그 사이를 이어서 목표를 구함.
 - 점에 속도가 없으면 직선으로, 있으면 3차 곡선으로 이음. 원본의 `trajectory.py` 와 같은 방법임.
 
-### 코드: 스텝마다 목표 보내기
+### 코드: 정해진 간격으로 목표 보내기
 
 ```python
-def on_joint_states(self, msg):
-    with self.lock:
-        self.measured.update(zip(msg.name, msg.position))
-        self.effort.update(zip(msg.name, msg.effort))
-        self.stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
-    if not self.wall:
-        self.step()                            # 시뮬레이터가 한 스텝 나아갈 때마다 목표를 한 번 보낸다
+def wall_loop(self, period):
+    """period 마다 step 을 부른다. 밀리지 않게 다음 시각을 정해 두고 그때까지 잔다."""
+    due = time.perf_counter()
+    while rclpy.ok():
+        self.step()
+        due += period
+        time.sleep(max(0.0, due - time.perf_counter()))
 ```
 
-- `/joint_states` 가 올 때마다 그 시각의 목표를 구해 `/joint_command` 를 한 번 보냄.
-- 팔 둘과 그리퍼의 목표를 한 메시지에 모아 보냄. 메시지에는 위치만 넣음.
-- 왜 `/joint_states` 에 맞추는지는 6절에서 봄.
+- 0.02초(50 Hz)마다 지금 시각의 목표를 구해 `/joint_command` 를 한 번 보냄. `--rate 20` 처럼 간격을 바꿀 수 있음.
+- 시뮬레이터가 몇 Hz 로 도는지는 신경 쓰지 않음. 그 차이는 받는 쪽이 메움 (6절).
+- 팔 둘과 그리퍼의 목표를 한 메시지에 모아 보냄. 메시지에는 위치와, 그 목표가 궤적의 어느 시각의 것인지(`header.stamp`)를 넣음.
 
 ### 코드: 끝났는지 보기
 
@@ -233,13 +232,13 @@ python3 41_pl2m_ros2/send_pose.py down
 오른팔    성공               0.10           0.05           0.06
 팔      결과         가장 큰 오차[°]    1번 관절 오차[°]    2번 관절 오차[°]
 왼팔     성공               0.06          -0.05           0.06
-오른팔    성공               0.04          -0.04           0.01
+오른팔    성공               0.03          -0.03           0.01
 팔      결과         가장 큰 오차[°]    1번 관절 오차[°]    2번 관절 오차[°]
-왼팔     성공               0.28           0.09           0.12
-오른팔    성공               0.28           0.06          -0.08
+왼팔     성공               0.28           0.08           0.13
+오른팔    성공               0.28           0.05          -0.07
 팔      결과         가장 큰 오차[°]    1번 관절 오차[°]    2번 관절 오차[°]
 왼팔     성공               0.15           0.01          -0.05
-오른팔    성공               0.10           0.01           0.03
+오른팔    성공               0.09           0.02           0.01
 ```
 
 - 네 자세 모두 0.3° 안에서 끝남. 운반 자세의 0.28° 는 강의 39 에서 본 6번 관절의 한계임.
@@ -253,7 +252,7 @@ python3 41_pl2m_ros2/send_pose.py down
 ~/isaacsim/python.sh 41_pl2m_ros2/pl2m_ros2.py --compensate left --log work/pl2m/ros2_left.json
 ```
 
-- 터미널 1 과 2 를 Ctrl+C 로 끝내고, 터미널 1 은 아래 명령으로, 터미널 2 는 3절의 명령으로 다시 실행함.
+- 터미널 1 과 2 를 Ctrl+C 로 끝내고, 터미널 1 은 위 명령으로, 터미널 2 는 3절의 명령으로 다시 실행함.
 - 터미널 3 에서 4절의 네 자세를 다시 보냄. `--log` 는 Ctrl+C 로 끝낼 때 위치와 토크를 파일에 저장함.
 
 ### 실행 결과
@@ -266,7 +265,7 @@ python3 41_pl2m_ros2/send_pose.py down
 왼팔     성공               0.06          -0.05           0.06
 오른팔    성공               1.27          -0.12           1.27
 팔      결과         가장 큰 오차[°]    1번 관절 오차[°]    2번 관절 오차[°]
-왼팔     성공               0.28           0.08           0.12
+왼팔     성공               0.28           0.07           0.13
 오른팔    성공               0.71           0.71           0.12
 ```
 
@@ -284,53 +283,122 @@ python3 41_pl2m_ros2/send_pose.py down
 - ROS 2 로 온 것은 위치뿐임. 그래프의 초록 선(보상 토크)은 ROS 2 메시지 어디에도 없음. 시뮬레이터가 자세에서 계산해 넣은 것임.
 - 그래서 MoveIt 은 중력을 몰라도 됨. 계획한 자세에 팔이 실제로 가 있게 하는 것은 로봇 쪽의 일임.
 
-## 6. 목표를 보내는 박자
+## 6. 받은 목표를 보간하기
 
-### 처음 만든 서버는 토크가 출렁였음
+### 보내는 간격과 로봇의 주기는 다름
 
-- 처음에는 궤적 서버가 자기 시계로 50 Hz 씩 목표를 보냈음. 시뮬레이터는 60 Hz 로 돎.
-- 물리 스텝 180번 가운데 41번은 목표가 그대로였고, 그 다음 스텝에 두 번 치가 한꺼번에 바뀌었음.
-- 구동이 낸 토크가 −9.0 ~ 3.2 N·m 로 출렁였음. `/joint_states` 가 올 때마다 보내게 고친 뒤에는 −0.7 ~ 0.7 N·m 임.
+- 궤적 서버는 50 Hz 로 보내고, 시뮬레이터는 60 Hz 로 돎. 둘을 맞추지 않았음.
+- 보내는 쪽은 로봇이 안에서 몇 Hz 로 도는지 몰라도 되어야 함. 실제 로봇에 명령을 보낼 때도 그럼.
+- 그 차이는 받는 쪽, 곧 로봇의 제어기가 메워야 함. 받은 목표 사이를 자기 주기로 이어 주는 것이 보간기임.
 
-### 주파수를 맞추면 되지 않나
+### 그대로 넣으면 생기는 일
 
-```bash
-python3 41_pl2m_ros2/trajectory_server.py --wall 60
+- 왼쪽이 받은 값을 Articulation Controller 로 그대로 넣은 경우임 (`--direct`). 스텝 179번 가운데 39번은 새 목표가 없어 그대로였고, 그 다음 스텝에 몰아서 바뀌었음.
+- 위치 구동은 목표가 갑자기 바뀌면 큰 토크를 냄. 구동이 낸 토크가 −6.7 ~ 3.8 N·m 로 출렁였음.
+- 오른쪽이 보간한 경우임. 목표가 스텝마다 고르게 바뀌고, 토크는 −0.6 ~ 1.6 N·m 임.
+
+### 보내는 주파수를 바꿔도 해결되지 않았음
+
+- 보간 없이 보내는 주파수만 60 Hz 로 맞췄을 때도 토크의 변화가 보간한 경우의 6배쯤이었음. 두 시계가 따로 돌아서 스텝당 정확히 한 개가 되지 않음.
+- 더 빨리 보내면 오히려 나빠졌음. Isaac Sim 의 구독 노드가 프레임마다 메시지를 하나씩 꺼내 쓰기 때문임. 목표 5개를 한꺼번에 보냈더니 다섯 프레임에 걸쳐 차례로 적용되었음.
+- 시뮬레이터의 `/joint_states` 가 올 때마다 하나씩 보내면 고르게 됨. 하지만 보내는 쪽이 로봇의 주기에 묶이는 방법이라 쓰지 않았음.
+
+### 실제 제어기는 받는 쪽에서 이어 줌
+
+| 제어기 | 문서에 적힌 것 |
+|---|---|
+| ros2_control 의 joint_trajectory_controller | 궤적의 점 사이를 시간에 따라 보간하므로 점 사이의 간격은 아무래도 됨. 보간 방법은 `none` 과 `spline` |
+| Universal Robots 의 `servoj` | `lookahead_time`(0.03 ~ 0.2초, 기본 0.1초)이 궤적을 부드럽게 함. 목표가 낮은 주파수로 갱신될 때 gain 이 높거나 lookahead 가 짧으면 진동할 수 있다고 적음 |
+| Franka 의 FCI | 1 kHz 로 실시간 제어 값을 보내는 인터페이스 |
+
+- 궤적이나 목표 위치를 받는 인터페이스는 받는 쪽이 사이를 이어 줌. 그래서 사용자는 로봇의 주기를 신경 쓰지 않음.
+- Franka 의 FCI 처럼 로봇의 주기(1 kHz)에 맞춰 직접 값을 넣는 저수준 인터페이스도 있음. 이쪽은 보내는 쪽이 주기를 맞춤.
+- Isaac Sim 의 Subscribe JointState 노드와 Articulation Controller 노드에는 보간하는 설정이 없었음. 그래서 코드로 만들었음.
+
+### 원리: 조금 늦게 따라가며 사이를 이음
+
+- 받은 목표를 (시각, 값) 으로 모아 둠. 점들이 그것임.
+- 지금보다 조금 앞선 시각을 "재생 시각" 으로 삼고, 그 시각의 값을 앞뒤 두 점 사이의 직선에서 구함. 파란 선임.
+- 늦게 따라가기 때문에 "다음 목표" 를 이미 받아 둔 상태임. 그래서 사이를 이을 수 있음. 계산으로 그린 예시임.
+
+### 지연은 얼마로
+
+- 0.1초를 기본으로 하고, 보내는 간격이 길면 간격의 2배 + 2 스텝으로 늘림. 20 Hz 로 보내면 0.127초가 되었음.
+- 지연이 길수록 메시지가 늦게 와도 버팀. 대신 그만큼 늦게 따라감.
+- 보내는 간격은 받은 메시지의 시각 차이로 어림함. 사용자가 알려 줄 필요가 없음.
+
+### 코드: 받기
+
+```python
+when = stamp if stamp > 0.0 else now                       # 보내는 쪽이 시각을 적지 않았으면 받은 시각을 쓴다
+gap = when - self.newest
+fresh = self.play is None or gap >= 0.3                    # 처음이거나 한동안 끊겼다 다시 옴
+if 0.0 < gap < 0.3:                                        # 이어서 오는 중: 보내는 간격을 어림한다
+    self.period += 0.1 * (gap - self.period)
+    self.delay = max(self.DELAY, 2.0 * self.period + 2.0 * dt)
+if fresh:
+    self.play = when - self.delay                          # 지금 목표에서 delay 에 걸쳐 첫 목표로 간다
 ```
 
-- `--wall` 뒤에 숫자를 주면, 서버가 자기 시계로 그 주파수만큼 보냄. 50 · 60 · 240 · 1000 Hz 로 바꿔 가며 같은 궤적을 보냈음.
-- 시뮬레이터는 `--compensate left --log` 로 실행하고, 기록을 아래 스크립트로 읽음.
+- 물리 스텝마다 구독 노드의 출력(관절 이름 · 위치 · 시각)을 읽고, 새 메시지이면 관절마다 (시각, 값) 을 모아 둠.
+- 처음 받았거나 0.3초 넘게 끊겼다 다시 오면, 지금 목표에서 새 목표까지 `delay` 에 걸쳐 가도록 출발점을 넣음. 목표가 한 번에 튀지 않음.
 
-### 터미널 3: 기록 읽기
+### 코드: 스텝마다 재생
+
+```python
+behind = (now - self.delay) - self.play                    # 재생이 밀려 있으면 5 % 빠르게 따라잡는다
+step = min(self.play + dt * (1.05 if behind > dt else 1.0), now - self.delay, self.newest)
+self.play = max(step, self.play)
+for name, points in self.points.items():
+    value = points[-1][1]                                  # 받은 것을 다 재생했으면 마지막 값을 지킨다
+    for (t0, v0), (t1, v1) in zip(points, list(points)[1:]):
+        if self.play < t1:
+            value = v0 if self.play <= t0 else v0 + (v1 - v0) * (self.play - t0) / (t1 - t0)
+            break
+    targets[0, self.names.index(name)] = value
+self.robot.set_dof_position_targets(targets, self._every)
+```
+
+- 재생 시각을 스텝마다 한 스텝씩 앞으로 보냄. 받은 마지막 목표의 시각은 넘지 않음.
+- 재생 시각의 앞뒤 두 점 사이를 직선으로 이어 값을 구하고, 관절의 목표 위치로 넣음.
+- 궤적이 끝나면 마지막 목표에 도착해 멈춤. 받은 것보다 더 나아가지 않음.
+
+### 메시지가 늦게 오면
+
+- 재생할 것이 떨어지면 그 자리에 멈춰 기다림. 다시 오면 멈춘 자리에서 이어 감. 밀린 만큼을 한 번에 건너뛰지 않음.
+- 밀린 시간은 5 % 빠르게 재생해 천천히 따라잡음.
+- 위 그림 오른쪽의 2.5초 근처에 한 스텝 멈춘 자국이 있음. 이런 멈춤은 가끔 있었고, 4절과 5절의 실행에서는 0번이었음.
+
+### 터미널: 간격을 바꿔 가며 재 보기
 
 ```bash
-python3 41_pl2m_ros2/check_ripple.py work/pl2m/ros2_wall50.json work/pl2m/ros2_wall60.json work/pl2m/ros2_wall240.json work/pl2m/ros2_wall1000.json work/pl2m/ros2_sync.json
+python3 41_pl2m_ros2/trajectory_server.py --rate 20
+python3 41_pl2m_ros2/check_ripple.py work/pl2m/ros2_direct50.json work/pl2m/ros2_rate20.json work/pl2m/ros2_rate50.json work/pl2m/ros2_rate100.json work/pl2m/ros2_rate250.json work/pl2m/ros2_sync.json
 ```
+
+- 시뮬레이터는 `--compensate left --log 파일` 로 실행하고, 궤적 서버의 `--rate` 를 20 · 50 · 100 · 250 으로 바꿔 가며 `send_pose.py forward` 를 보냄.
+- 첫 줄의 `direct50` 은 시뮬레이터에 `--direct` 를 붙여 보간 없이 실행한 기록임. 마지막 줄은 서버에 `--sync` 를 붙여 `/joint_states` 가 올 때마다 보낸 것임.
+
+### 실행 결과
 
 ```text
 기록                              목표가 안 바뀐 스텝   한 스텝 최대[°]        구동 토크 범위[N·m]    스텝 사이 변화 평균   오차 최대[°]
-ros2_wall50.json                     41 / 180         2.60       -9.0 ~ 3.2              1.07       3.41
-ros2_wall60.json                     16 / 180         1.79       -3.7 ~ 2.7              0.50       2.96
-ros2_wall240.json                    32 / 180         2.61       -7.1 ~ 2.9              0.94       3.79
-ros2_wall1000.json                   30 / 180         5.20      -17.4 ~ 4.9              0.94       5.01
-ros2_sync.json                        5 / 180         0.75       -0.7 ~ 0.8              0.07       2.83
+ros2_direct50.json                   39 / 179         2.09       -6.7 ~ 3.8              1.20       3.48
+ros2_rate20.json                      0 / 181         0.78       -0.7 ~ 0.7              0.10       3.66
+ros2_rate50.json                      1 / 180         0.75       -0.6 ~ 1.6              0.08       3.58
+ros2_rate100.json                     3 / 180         0.78       -1.2 ~ 1.2              0.09       3.74
+ros2_rate250.json                     0 / 180         0.75       -0.5 ~ 0.7              0.06       3.58
+ros2_sync.json                        0 / 180         0.75       -0.7 ~ 0.7              0.07       3.58
 ```
 
-- 시뮬레이터와 같은 60 Hz 가 가장 나음. 그래도 스텝에 맞춘 경우보다 토크의 변화가 7배 큼 (0.50 과 0.07).
-- 주파수를 더 올리면 좋아지지 않고 오히려 나빠짐. 1000 Hz 에서는 한 스텝에 목표가 5.2° 바뀌었음.
-- 값은 실행할 때마다 달라질 수 있음. 서버를 만드는 동안 50 Hz 에서 "안 바뀐 스텝" 이 31 ~ 41 사이로 나왔음.
+- 보간하면 20 Hz 로 보내든 250 Hz 로 보내든 토크의 변화가 0.06 ~ 0.10 임. 그대로 넣은 경우(1.20)의 1/12 이하임.
+- 보내는 쪽은 간격을 마음대로 정해도 됨. 로봇의 주기에 맞춘 경우(`sync`)와 차이가 없음.
 
-### 왜 주파수만으로는 안 되나
+### 얻은 것과 치른 값
 
-- Isaac Sim 의 구독 노드는 프레임마다 메시지를 **하나씩** 꺼내 씀. 서로 다른 목표 5개를 한꺼번에 보냈더니, 다섯 프레임에 걸쳐 차례로 하나씩 적용되었음.
-- 프레임당 한 개보다 적게 오면 건너뛰는 프레임이 생기고, 많이 오면 밀려서 늦게 적용됨.
-- 서버의 시계와 시뮬레이터의 시계는 따로 돎. 60 Hz 로 맞춰도 프레임당 정확히 한 개가 되지는 않음.
-
-### 읽기
-
-- 위치 구동은 목표가 갑자기 바뀌면 큰 토크를 냄. 목표가 고르게 바뀌어야 토크도 고름.
-- 시뮬레이터가 내는 `/joint_states` 를 박자로 쓰면, 시뮬레이터가 한 프레임 나아갈 때마다 목표가 정확히 한 번 감.
-- 멈춘 뒤의 오차는 어느 방법이나 같음 (왼팔 0.08°, 오른팔 1.66°). 달라지는 것은 움직이는 동안의 토크임.
+- 얻은 것: 보내는 쪽이 로봇의 주기를 몰라도 고르게 움직임.
+- 치른 값: 정해 둔 지연(0.1초)만큼 늦게 따라감. 얼마나 늦게 끝나는지를 따로 재지는 않았음.
+- 멈춘 뒤의 오차는 달라지지 않음 (왼팔 0.08°, 오른팔 1.66°).
 
 ## 7. 틀리기 쉬운 것: effort 칸을 이으면 보상이 지워짐
 
@@ -340,7 +408,7 @@ ros2_sync.json                        5 / 180         0.75       -0.7 ~ 0.8     
 ~/isaacsim/python.sh 41_pl2m_ros2/pl2m_ros2.py --compensate left --wire-effort
 ```
 
-- `--wire-effort` 는 `/joint_command` 의 effort 칸까지 Articulation Controller 에 잇는 틀린 연결임. 터미널 3 에서 `send_pose.py forward` 를 보냄.
+- `--wire-effort` 는 받은 메시지를 Articulation Controller 에 잇되, effort 칸까지 잇는 틀린 연결임. 터미널 3 에서 `send_pose.py forward` 를 보냄.
 
 ### 실행 결과
 
@@ -361,7 +429,7 @@ if wire_effort:      # 이렇게 이으면 메시지의 effort 가 관절 힘으
 
 - 보상으로 넣은 토크를 Articulation Controller 가 프레임마다 다시 써 버리는 것으로 보임. 안에서 어떤 순서로 일어나는지는 확인하지 않았음.
 - 궤적 서버는 effort 칸을 비워서 보냈는데도 지워졌음. 칸을 잇는 것만으로 일어남.
-- 위치 · 속도 · 힘 세 칸을 모두 잇는 예제를 그대로 따라 하면 보상이 사라짐. 이 로봇에서는 위치만 이어야 함.
+- 위치 · 속도 · 힘 세 칸을 모두 잇는 예제를 그대로 따라 하면 보상이 사라짐. 이 강의의 보간기는 위치만 씀.
 
 ## 8. 그리퍼와 바퀴
 
@@ -372,8 +440,8 @@ python3 41_pl2m_ros2/send_pose.py transport --grip 0.03
 ```
 
 ```text
-왼손 그리퍼: 위치 30.0 mm, 도착 예
-오른손 그리퍼: 위치 30.0 mm, 도착 예
+왼손 그리퍼: 위치 29.7 mm, 도착 예
+오른손 그리퍼: 위치 29.7 mm, 도착 예
 ```
 
 - 팔을 주행 자세로 옮긴 뒤 그리퍼를 30 mm 벌림. GripperCommand 액션으로 보냄.
@@ -387,9 +455,9 @@ ros2 topic echo /odom --once --field pose.pose.position
 ```
 
 ```text
-x: 1.0275075407305796
-y: -4.260609472267809e-05
-z: -0.0007081668624647433
+x: 1.0282757470313753
+y: -0.0005499790782695639
+z: -0.0007087199110743307
 ```
 
 - 0.25 m/s 를 4초쯤 보내니 `/odom` 이 1.03 m 를 가리킴. 보낸 시간이 정확히 4초는 아니었음.
@@ -408,25 +476,35 @@ z: -0.0007081668624647433
 ### 직접 바꿔 보기
 
 - `--compensate none` 으로 실행하고 `send_pose.py forward` 를 보내, 두 팔이 모두 1.7° 쯤 처지는지 보기.
-- `send_pose.py forward --seconds 1` 처럼 궤적을 짧게 해서, 움직이는 동안의 오차와 끝난 뒤의 오차가 어떻게 달라지는지 보기.
-- `trajectory_server.py` 의 `GOAL_TOLERANCE` 를 0.02 로 줄이고 `--compensate none` 으로 실행해, 궤적이 실패로 끝나는지 보기.
-- `ros2 topic echo /joint_command --once` 로 메시지에 위치만 들어 있는지 보기.
+- 궤적 서버를 `--rate 10` 으로 띄우고 `check_ripple.py` 로 읽어, 보간기의 지연과 토크의 변화가 어떻게 되는지 보기.
+- `JointCommandInterpolator.DELAY` 를 0.03 으로 줄이고 `--rate 50` 으로 돌려, 멈춘 스텝이 몇 번 생기는지 보기.
+- `ros2 topic echo /joint_command --once` 로 메시지에 위치와 시각만 들어 있는지 보기.
 
 ## 11. 정리
 
 ### 기억할 것
 
 - ROS 2 쪽(MoveIt · 궤적 서버)은 위치만 보냄. 중력 보상은 시뮬레이터 안, 로봇 쪽에 둠. 원본과 상용 로봇팔이 같은 구조임.
-- `/joint_command` 는 위치 칸만 Articulation Controller 에 이음. effort 칸을 이으면 보상이 지워짐.
-- 목표는 `/joint_states` 가 올 때마다 한 번씩 보냄. 주파수를 맞추는 것만으로는 부족했음. 구독 노드가 프레임마다 메시지를 하나씩 쓰기 때문임.
-- 한쪽 팔만 보상해 보면 ROS 2 를 거쳐도 강의 40 과 같은 값이 나옴 (왼팔 0.08°, 오른팔 1.66°).
-- 익스텐션을 켠 뒤 `app.update()` 를 한 번 하고 그래프를 만듦.
+- 보내는 쪽은 자기 간격으로 보내면 됨. 받은 목표 사이를 로봇의 주기로 잇는 것은 받는 쪽의 일이고, Isaac Sim 에는 그 설정이 없어 보간기를 코드로 만들었음.
+- 보간의 원리: 받은 목표를 (시각, 값) 으로 모으고, 0.1초 늦은 재생 시각의 값을 두 목표 사이 직선에서 구함.
+- 받은 값을 그대로 넣으면 구동 토크가 −6.7 ~ 3.8 N·m 로 출렁였고, 보간하면 어느 간격으로 보내도 고름.
+- `/joint_command` 의 effort 칸을 Articulation Controller 에 이으면 보상이 지워짐.
 
 ### 한계
 
 - MoveIt 은 아직 붙이지 않았음. 속도가 든 궤적, 궤적 취소, 경로 도중의 오차 검사는 확인하지 않았음.
-- ROS 2 쪽에서 토크를 계산해 보내는 방법은 만들어 보지 않았음. 두 방법을 재서 비교한 것은 아님.
-- 궤적 서버와 시뮬레이터가 한 PC 에 있을 때의 결과임. 네트워크로 떨어져 있을 때의 지연은 재지 않았음.
-- 실물 로봇에 목표를 어떤 박자로 보내야 하는지는 다루지 않았음. 여기서 본 것은 Isaac Sim 의 구독 노드에 맞춘 방법임.
-- 손에 든 물체의 무게는 보상에 들어 있지 않음. 물체를 집는 강의에서 봄.
+- 보간은 두 목표 사이를 직선으로 이음. 속도까지 맞춰 잇는 방법은 만들지 않았음.
+- 보간기의 지연 0.1초는 정해 본 값임. 더 짧게 해도 되는지, 네트워크로 떨어진 PC 에서 얼마가 필요한지는 재지 않았음.
+- 실제 제어기의 문서에서 옮긴 것은 "받는 쪽이 보간한다" 는 사실까지임. 그 안의 계산이 이 강의의 보간기와 같은지는 확인하지 못했음.
+- ROS 2 쪽에서 토크를 계산해 보내는 방법은 만들어 보지 않았음.
 - 강의 PC 한 대(Isaac Sim 5.1, ROS 2 Jazzy)에서 확인한 결과임.
+
+### 출처
+
+| 내용 | 문서 |
+|---|---|
+| joint_trajectory_controller 의 보간 | [userdoc](https://control.ros.org/jazzy/doc/ros2_controllers/joint_trajectory_controller/doc/userdoc.html), [trajectory](https://control.ros.org/jazzy/doc/ros2_controllers/joint_trajectory_controller/doc/trajectory.html) |
+| UR `servoj` 의 lookahead_time · gain | [Servoj command](https://www.universal-robots.com/articles/ur/programming/servoj-command/) |
+| Franka FCI 의 1 kHz | [Franka Control Interface Overview](https://frankarobotics.github.io/docs/overview.html) |
+
+- 2026년 11월에 열어 본 문서임. 문장을 직접 대조한 것만 적었음.
