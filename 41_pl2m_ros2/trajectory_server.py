@@ -2,11 +2,12 @@
 """강의 41: 궤적 서버. MoveIt 이 보내는 궤적(액션)을 받아, 시간에 맞춰 관절의 목표 위치를 /joint_command 로 내보냅니다.
 
 목표는 /joint_states 가 올 때마다 하나씩 보냅니다. 시뮬레이터가 한 스텝 나아갈 때마다 목표도 한 번 바뀌게 하려는 것입니다.
-(벽시계로 50 Hz 씩 보내면 60 Hz 로 도는 시뮬레이터와 박자가 어긋나 관절 토크가 출렁였습니다. --wall 로 그때의 방법을 볼 수 있습니다.)
+Isaac Sim 의 구독 노드는 프레임마다 메시지를 하나씩 꺼내 씁니다. 그래서 프레임당 정확히 한 개를 보내야 목표가 고르게 바뀝니다.
+(벽시계로 보내면 주파수를 60 Hz 로 맞춰도 관절 토크가 출렁였습니다. --wall HZ 로 그 방법을 볼 수 있습니다.)
 
     source /opt/ros/jazzy/setup.bash
     python3 41_pl2m_ros2/trajectory_server.py
-    python3 41_pl2m_ros2/trajectory_server.py --wall     # 비교용: 벽시계로 50 Hz 씩 보냄
+    python3 41_pl2m_ros2/trajectory_server.py --wall 50  # 비교용: 벽시계로 50 Hz 씩 보냄 (60 · 120 · 240 도 해 볼 것)
 
 액션 (원본 MuJoCo 시뮬레이터가 내는 것과 같은 이름. MoveIt 설정 moveit_controllers.yaml 이 이 이름을 찾는다)
     /left_joint_trajectory_controller/follow_joint_trajectory     control_msgs/action/FollowJointTrajectory
@@ -32,7 +33,6 @@ from rclpy.parameter import Parameter
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint
 
-WALL_RATE = 50.0            # --wall 일 때 /joint_command 를 내보내는 빠르기 [Hz]
 GOAL_TOLERANCE = 0.035      # 궤적이 끝났을 때 목표와 이만큼 안이면 성공 [rad] (원본 설정 arm.goal_tolerance)
 GOAL_TIME = 3.0             # 궤적이 끝난 뒤 이 시간 안에 못 들어오면 실패 [s] (원본 설정 arm.goal_time_tolerance)
 GRIP_TOLERANCE = 0.002      # 그리퍼가 목표와 이만큼 안이면 도착 [m]
@@ -74,7 +74,7 @@ class Trajectory:
 
 
 class TrajectoryServer(Node):
-    def __init__(self, wall=False):
+    def __init__(self, wall=0.0):
         super().__init__("pl2m_trajectory_server", parameter_overrides=[Parameter("use_sim_time", value=True)])
         self.lock = threading.Lock()
         self.measured, self.effort = {}, {}        # /joint_states 에서 읽은 지금 위치 · 힘
@@ -85,8 +85,8 @@ class TrajectoryServer(Node):
         group = ReentrantCallbackGroup()
         self.command = self.create_publisher(JointState, "/joint_command", 10)
         self.create_subscription(JointState, "/joint_states", self.on_joint_states, 10, callback_group=group)
-        if wall:                                   # 예전 방법: 시뮬레이터의 박자와 상관없이 벽시계로 보냄
-            self.create_timer(1.0 / WALL_RATE, self.step, callback_group=group, clock=rclpy.clock.Clock())
+        if wall:                                   # 비교용: 시뮬레이터의 박자와 상관없이 벽시계로 보냄
+            threading.Thread(target=self.wall_loop, args=(1.0 / wall,), daemon=True).start()
         self.servers = []
         for side in ("left", "right"):
             arm = [f"openarm_{side}_joint{i}" for i in range(1, 8)]
@@ -102,7 +102,7 @@ class TrajectoryServer(Node):
                 goal_callback=lambda request, key=side + "_gripper": self.check_gripper(request, key),
                 cancel_callback=lambda handle: CancelResponse.ACCEPT, callback_group=group))
         self.busy = set()
-        self.get_logger().info("궤적 서버 준비됨: 팔 2 · 그리퍼 2" + (" (벽시계 50 Hz)" if wall else " (/joint_states 에 맞춰 보냄)"))
+        self.get_logger().info("궤적 서버 준비됨: 팔 2 · 그리퍼 2" + (f" (벽시계 {wall:g} Hz)" if wall else " (/joint_states 에 맞춰 보냄)"))
 
     def on_joint_states(self, msg):
         with self.lock:
@@ -111,6 +111,14 @@ class TrajectoryServer(Node):
             self.stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         if not self.wall:
             self.step()                            # 시뮬레이터가 한 스텝 나아갈 때마다 목표를 한 번 보낸다
+
+    def wall_loop(self, period):
+        """벽시계로 period 마다 step 을 부른다. 밀리지 않게 다음 시각을 정해 두고 그때까지 잔다."""
+        due = time.perf_counter()
+        while rclpy.ok():
+            self.step()
+            due += period
+            time.sleep(max(0.0, due - time.perf_counter()))
 
     def step(self):
         """실행 중인 궤적마다 지금 시각의 목표를 구해, 한 메시지에 모아 보낸다. 팔 둘이 따로 보내면 한쪽이 묻힐 수 있다."""
@@ -247,7 +255,8 @@ class TrajectoryServer(Node):
 
 def main():
     rclpy.init()
-    node = TrajectoryServer(wall="--wall" in sys.argv)
+    wall = float(sys.argv[sys.argv.index("--wall") + 1]) if "--wall" in sys.argv else 0.0      # 0 = /joint_states 에 맞춤
+    node = TrajectoryServer(wall=wall)
     executor = MultiThreadedExecutor(num_threads=8)
     executor.add_node(node)
     try:
