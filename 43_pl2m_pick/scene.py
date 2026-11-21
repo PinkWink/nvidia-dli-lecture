@@ -5,7 +5,8 @@
 """
 TABLE_TOP = {"center": (0.58, 0.0, 0.735), "size": (0.30, 0.60, 0.03)}      # 상판: 앞 가장자리 x = 0.43, 윗면 z = 0.75
 TABLE_LEG = {"center": (0.62, 0.0, 0.36), "size": (0.06, 0.06, 0.72)}
-CUP_DIAMETER, CUP_HEIGHT, CUP_MASS = 0.05, 0.09, 0.1                         # 원본 worlds/booth.yaml 의 컵
+CUP_DIAMETER, CUP_HEIGHT = 0.05, 0.09                                        # 원본 worlds/booth.yaml 의 컵
+CUP_MASS = 0.2                                                               # 내용물이 든 컵으로 보고 200 g 으로 가정 (원본은 0.1)
 CUP_FRICTION = 1.2                                                           # 원본 MuJoCo 모델의 물체 마찰
 CUPS = {  # 팔 → (이름, 가운데, 색)
     "left": ("cup_pink", (0.485, 0.15, 0.795), (0.87, 0.42, 0.65)),

@@ -5,7 +5,7 @@
 """
 POST_XY = (0.38, 0.15)                 # 기둥의 자리
 POST_SIZE = (0.03, 0.03, 0.47)         # 기둥의 크기 (바닥에서 0.47 m 높이)
-CUP_RADIUS, CUP_HEIGHT, CUP_MASS = 0.03, 0.09, 0.1     # 기둥 위에 올려 둔 컵 [m, m, kg]
+CUP_RADIUS, CUP_HEIGHT, CUP_MASS = 0.03, 0.09, 0.2     # 기둥 위에 올려 둔 컵 [m, m, kg]
 CUP_CENTER = (POST_XY[0], POST_XY[1], POST_SIZE[2] + CUP_HEIGHT / 2)
 # MoveIt 에 알려 줄 상자: 기둥과 컵을 한꺼번에 감싼다. 컵보다 옆으로 1 cm, 위로 2 cm 크다
 BOX_SIZE = (0.08, 0.08, POST_SIZE[2] + CUP_HEIGHT + 0.02)

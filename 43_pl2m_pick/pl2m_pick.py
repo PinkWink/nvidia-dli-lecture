@@ -1,7 +1,7 @@
 """강의 43: 탁자 위의 컵을 집을 PL-2M 을 띄웁니다. 강의 41 의 ROS 2 연결 · 보간기와 강의 40 의 중력 보상을 그대로 씁니다.
 
     source /opt/ros/jazzy/setup.bash                                   # Isaac Sim 보다 먼저
-    ~/isaacsim/python.sh 43_pl2m_pick/pl2m_pick.py                     # 탁자 + 컵 둘 (0.1 kg)
+    ~/isaacsim/python.sh 43_pl2m_pick/pl2m_pick.py                     # 탁자 + 컵 둘 (0.2 kg)
     ~/isaacsim/python.sh 43_pl2m_pick/pl2m_pick.py --cup-mass 1.0      # 무거운 컵
     ~/isaacsim/python.sh 43_pl2m_pick/pl2m_pick.py --finger-friction 0.2   # 손가락이 미끄러우면
     ~/isaacsim/python.sh 43_pl2m_pick/pl2m_pick.py --soft-mimic        # 비교용: 가져온 그대로의 손가락 묶음
@@ -25,7 +25,7 @@ TIP_OFFSET = 0.0835                              # 손(hand) 링크에서 손끝
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cup-mass", type=float, default=None, help="컵의 무게 [kg] (기본은 원본의 0.1)")
+    parser.add_argument("--cup-mass", type=float, default=None, help="컵의 무게 [kg] (기본 0.2)")
     parser.add_argument("--finger-friction", type=float, default=None, help="손가락의 마찰 (기본은 컵과 같은 1.2)")
     parser.add_argument("--soft-mimic", action="store_true", help="둘째 손가락의 묶음을 가져온 그대로(무른 용수철) 둔다 (비교용)")
     parser.add_argument("--shared-shape", action="store_true", help="손가락의 충돌 모양을 가져온 그대로(함께 씀) 둔다 (비교용)")
