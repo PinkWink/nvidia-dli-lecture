@@ -113,7 +113,11 @@ class GravityCompensation:
             if self.coriolis:                                     # 움직일 때 생기는 힘(코리올리 · 원심력)까지
                 needed = needed + self.robot.get_coriolis_and_centrifugal_compensation_forces()
             efforts[:, self.dofs] = needed[:, self.shift + self.dofs]
+            self.add_extra(efforts)
         self.robot.set_dof_actuation_forces(efforts, self._every)
+
+    def add_extra(self, efforts):
+        """보상에 더 넣을 힘이 있으면 efforts 에 더한다 (강의 43: 손에 든 물체의 무게)."""
 
     def stop(self):
         self._sub = None

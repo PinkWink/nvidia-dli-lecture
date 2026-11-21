@@ -36,6 +36,7 @@ GOAL_TOLERANCE = 0.035      # 궤적이 끝났을 때 목표와 이만큼 안이
 GOAL_TIME = 3.0             # 궤적이 끝난 뒤 이 시간 안에 못 들어오면 실패 [s] (원본 설정 arm.goal_time_tolerance)
 GRIP_TOLERANCE = 0.002      # 그리퍼가 목표와 이만큼 안이면 도착 [m]
 GRIP_OPEN = 0.044           # 손가락 하나가 벌어지는 거리의 한계 [m]
+GRIP_SPEED = 0.03           # 손가락 하나가 움직이는 빠르기 [m/s]. 목표를 한 번에 바꾸지 않고 이 빠르기로 옮긴다
 
 
 def seconds(duration):
@@ -223,14 +224,17 @@ class TrajectoryServer(Node):
     def run_gripper(self, handle, name, key):
         goal, result = handle.request.command.position, GripperCommand.Result()
         with self.lock:
-            self.targets[name] = goal
-            start = moved_at = self.stamp
+            target = float(self.targets.get(name, self.measured[name]))      # 지금 목표에서 출발
+            start = moved_at = stepped_at = self.stamp
         last = None
         try:
             while rclpy.ok():
                 with self.lock:
                     position, now = float(self.measured[name]), self.stamp
                     result.effort = float(self.effort.get(name, 0.0))
+                    step = GRIP_SPEED * max(0.0, now - stepped_at)                # 목표를 정해진 빠르기로 옮긴다
+                    target += max(-step, min(step, goal - target))
+                    self.targets[name], stepped_at = target, now
                 if last is None or abs(position - last) > 0.0001:
                     moved_at, last = now, position
                 result.position = position
@@ -242,7 +246,7 @@ class TrajectoryServer(Node):
                 if result.reached_goal or result.stalled:
                     handle.succeed()
                     return result
-                if now - start > 6.0:
+                if now - start > 8.0:
                     handle.abort()
                     return result
                 time.sleep(0.02)
