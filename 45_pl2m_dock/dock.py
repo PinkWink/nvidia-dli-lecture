@@ -5,6 +5,7 @@
     python3 45_pl2m_dock/dock.py drinks --nav --undock   # 도킹한 뒤 뒤로 물러나 Nav2 모드로 돌아옴
     python3 45_pl2m_dock/dock.py --tour 2                # 스테이션 셋을 두 바퀴: Nav2 → 도킹 → 물러나기, 오차를 표로
     python3 45_pl2m_dock/dock.py --tour 2 --strict-nav   # 비교용: Nav2 가 도착이라고 할 때까지 기다림
+    python3 45_pl2m_dock/dock.py drinks --aim 0.05       # 축이 로봇의 왼쪽으로 5 cm 인 자리에 선다 (오른쪽으로 5 cm 비켜 서기)
     python3 45_pl2m_dock/dock.py drinks --no-align       # 비교용: 옆으로 벗어나 있어도 옆걸음을 하지 않음
     python3 45_pl2m_dock/dock.py drinks --single         # 비교용: 마커 한 장만 보고 도킹
     python3 45_pl2m_dock/dock.py drinks --visual-end 0.45  # 비교용: 마커를 보며 0.45 m 까지 가려고 해 본다 (어디서 마커를 놓치나)
@@ -42,12 +43,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(HERE, "..", "44_pl2m_nav"))
 from booth import STATIONS, angle_difference
-from go_to import Base
+from go_to import Base, yaw_of
 from markers import DOCK, docked_pose, station_markers
 
 LABELS = {"NAV2": "Nav2 이동", "SETTLE": "멈춤 확인", "SEARCH": "마커 찾기", "ALIGN": "옆걸음", "SERVO": "마커 보며 접근",
           "BLIND": "오도메트리 직진", "DOCKED": "도킹됨", "UNDOCK": "물러나기", "IDLE": "대기", "FAILED": "실패"}
 STILL_LINEAR, STILL_ANGULAR, STILL_TIME = 0.005, 0.01, 0.5      # 멈췄다고 보는 속도 [m/s] · [rad/s] 와 그 상태가 이어져야 하는 시간 [s]
+AIM_TOLERANCE = 0.02                                           # 비켜 설 때(aim)는 옆으로 2 cm 넘게 어긋나면 옆걸음을 한다: 마커를 보며 다가가는 동안에는 옆 오차가 거의 줄지 않는다
 NEAR = (0.25, 5.0)                                             # Nav2 가 목표의 25 cm 안에서 5초 동안 나아가지 않으면 도착으로 본다: 도킹이 받아 줄 수 있는 범위
 
 
@@ -92,7 +94,7 @@ class Docker(Base):
         self.mode, self.history, self.samples = "IDLE", [], []
         self.mode_pub = self.create_publisher(String, "/mode", 10)
         self.markers = None
-        self.poses = collections.deque(maxlen=400)        # (시각, x, y) : 영상을 찍은 순간의 오도메트리를 찾는 데 쓴다
+        self.poses = collections.deque(maxlen=400)        # (시각, x, y, 방향) : 영상을 찍은 순간의 오도메트리를 찾는 데 쓴다
         self.pending, self.foreign = collections.deque(maxlen=200), 0     # 내가 낸 /cmd_vel 가운데 아직 되돌아오지 않은 것, 남이 낸 것의 수
         self.create_subscription(ArucoMarkerArray, "/vision/markers", self._on_markers, 10)
         self.create_subscription(Twist, "/cmd_vel", self._on_cmd, 50)
@@ -105,7 +107,7 @@ class Docker(Base):
     # --- 듣기 -----------------------------------------------------------
     def _on_odom(self, msg):
         super()._on_odom(msg)
-        self.poses.append((msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9, msg.pose.pose.position.x, msg.pose.pose.position.y))
+        self.poses.append((msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9, msg.pose.pose.position.x, msg.pose.pose.position.y, yaw_of(msg.pose.pose.orientation)))
 
     def _on_markers(self, msg):
         stamp = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
@@ -260,11 +262,14 @@ class Docker(Base):
         raise DockError(f"마커 {list(offsets)} 를 찾지 못함")
 
     # --- 도킹 -----------------------------------------------------------
-    def dock(self, station):
+    def dock(self, station, aim=0.0, tolerance=None):
         """지금 자리(스테이션 앞)에서 도킹한다. 선 자리를 (마커 면까지의 거리, 축이 왼쪽으로 벗어난 거리, 축과 나란해지려면 돌 각) 으로 돌려준다.
 
         이 세 값이 도킹 모드가 다음 모드(팔 작업)에 건네는 것이다. 팔은 이것으로 테이블 위 물체의 자리를 셈한다.
+        aim: 축이 로봇의 왼쪽으로 이만큼 [m] 떨어지게 선다 (0 이면 축 위). 물체가 팔이 닿는 범위에 오도록 비켜 설 때 쓴다.
+        tolerance: 옆으로 이보다 더 어긋나 있으면 옆걸음을 한다. 주지 않으면 DOCK 의 max_lateral_error.
         """
+        tolerance = DOCK["max_lateral_error"] if tolerance is None else tolerance
         offsets = station_markers(station)
         # 1. 멈춤 확인: 움직이는 중에 찍은 영상으로 자리를 재면 안 된다
         self.set_mode("SETTLE", "Nav2 가 끝났는지, 베이스가 멈췄는지 봄")
@@ -286,16 +291,17 @@ class Docker(Base):
             along, side, turn = station_geometry(found, offsets)
             print(f"            마커 {sorted(found)}: 면까지 {along:.3f} m, 축이 왼쪽으로 {side:+.3f} m, 돌아야 할 각 {math.degrees(turn):+.1f}°", flush=True)
             self.note(along=along, side=side, turn=turn)
-            if abs(side) <= DOCK["max_lateral_error"] or not self.options["align"] or attempt == 2:
+            if abs(side - aim) <= tolerance or not self.options["align"] or attempt == 2:
                 break
-            self.set_mode("ALIGN", f"축에서 {abs(side) * 100:.1f} cm 벗어남 (한계 {DOCK['max_lateral_error'] * 100:.0f} cm): 옆걸음")
+            where = f"설 자리(축이 왼쪽으로 {aim * 100:+.0f} cm 인 곳)에서" if aim else "축에서"
+            self.set_mode("ALIGN", f"{where} {abs(side - aim) * 100:.1f} cm 벗어남 (한계 {tolerance * 100:.0f} cm): 옆걸음")
             if abs(turn) > 0.03:
                 self.turn(turn)
-            self.sidestep(side)
+            self.sidestep(side - aim)
             self.wait_still()
             self.set_mode("SEARCH", "옆걸음 뒤 다시 잼")
-        if abs(side) > 2 * DOCK["max_lateral_error"] and self.options["align"]:
-            raise DockError(f"옆걸음을 하고도 축에서 {abs(side) * 100:.1f} cm 벗어나 있음")
+        if abs(side - aim) > 2 * tolerance and self.options["align"]:
+            raise DockError(f"옆걸음을 하고도 {'설 자리' if aim else '축'}에서 {abs(side - aim) * 100:.1f} cm 벗어나 있음")
         # 3. 마커를 보며 다가가기
         self.set_mode("SERVO", f"마커를 보며 면까지 {DOCK['visual_end_dx']:.2f} m 가 될 때까지")
         last, last_pose, end, shown, missed, lost = None, None, self.now() + DOCK["timeout"], -1.0, 0, None
@@ -331,7 +337,7 @@ class Docker(Base):
                 why = f"면까지 {along:.3f} m"
                 break
             linear = min(DOCK["max_speed"], max(0.03, DOCK["gain"] * (along - DOCK["target_dx"])))
-            angular = DOCK["lateral_gain"] * side / max(along, 0.3) + DOCK["heading_gain"] * turn
+            angular = DOCK["lateral_gain"] * (side - aim) / max(along, 0.3) + DOCK["heading_gain"] * turn
             angular = max(-0.3, min(0.3, angular))
             self.command(linear, angular)
             self.note(along=along, side=side, turn=turn, linear=linear, angular=angular)
@@ -350,11 +356,16 @@ class Docker(Base):
                       f"그 뒤 {travelled * 100:.1f} cm 를 이미 갔으므로 {remaining * 100:.1f} cm 를 오도메트리로 감")
         if abs(turn) > 0.02:                                   # 1.1° 넘게 틀어져 있으면 제자리에서 돌아 축과 나란히 선다
             self.turn(turn)
-            side, turn = side + travelled * math.sin(turn), 0.0
-        else:                                                  # 작으면 그대로 간다. 비스듬히 가는 만큼 옆으로 옮겨지는 것을 셈해 둔다
-            side = side + (along - DOCK["target_dx"]) * math.sin(turn)
         self.drive(remaining, DOCK["blind_speed"])
         self.wait_still()
+        # 5. 건넬 값: 마지막 영상을 찍은 뒤 로봇이 움직인 만큼(오도메트리)을 그때 잰 값에 더한다
+        if last_pose:
+            x, y, yaw = self.odom()
+            dx, dy = x - last_pose[1], y - last_pose[2]
+            ahead = dx * math.cos(last_pose[3]) + dy * math.sin(last_pose[3])        # 찍을 때의 로봇 기준으로 앞 · 왼쪽으로 간 거리
+            left = -dx * math.sin(last_pose[3]) + dy * math.cos(last_pose[3])
+            side = side - (-ahead * math.sin(turn) + left * math.cos(turn))        # 축에서 틀어진 채(-turn) 간 만큼 옆으로 옮겨졌다
+            turn = turn - angle_difference(yaw, last_pose[3])                         # 그동안 돈 만큼 뺀다
         self.set_mode("DOCKED", f"면까지 {DOCK['target_dx']:.2f} m 로 봄, 축이 왼쪽으로 {side:+.3f} m, 축과 나란해지려면 {math.degrees(turn):+.1f}°")
         return DOCK["target_dx"], side, turn
 
@@ -383,12 +394,12 @@ class Docker(Base):
                 self.halt()
         return arrival
 
-    def go_and_dock(self, station, tries=2):
-        """Nav2 → 도킹. 도킹에 실패하면 물러났다가 Nav2 로 다시 앞에 선 뒤 한 번 더 한다."""
+    def go_and_dock(self, station, tries=2, aim=0.0, tolerance=None):
+        """Nav2 → 도킹. 도킹에 실패하면 물러났다가 Nav2 로 다시 앞에 선 뒤 한 번 더 한다. aim · tolerance 는 dock 에 그대로 건넨다."""
         for attempt in range(1, tries + 1):
             arrival = self.navigate(station)
             try:
-                return arrival, self.dock(station)
+                return arrival, self.dock(station, aim, tolerance)
             except DockError as error:
                 self.halt()
                 self.set_mode("FAILED", f"{error} ({attempt}/{tries}번째)")
@@ -440,6 +451,7 @@ def main():
     parser.add_argument("--nav", action="store_true", help="먼저 Nav2 로 스테이션 앞까지 감")
     parser.add_argument("--undock", action="store_true", help="도킹한 뒤 뒤로 물러남")
     parser.add_argument("--tour", type=int, metavar="N", help="스테이션 셋을 N 바퀴: Nav2 → 도킹 → 물러나기")
+    parser.add_argument("--aim", type=float, default=0.0, metavar="M", help="축이 로봇의 왼쪽으로 M [m] 떨어지게 선다 (기본 0 = 축 위). 이때는 옆으로 2 cm 넘게 어긋나면 옆걸음을 함")
     parser.add_argument("--no-align", action="store_true", help="비교용: 옆걸음을 하지 않음")
     parser.add_argument("--no-settle", action="store_true", help="비교용: 멈췄는지 확인하지 않음")
     parser.add_argument("--strict-nav", action="store_true", help="비교용: Nav2 가 도착이라고 할 때까지 기다림 (목표 가까이에서 서 있어도 넘어가지 않음)")
@@ -466,13 +478,14 @@ def main():
             before = robot.score(args.station)
             if args.nav:
                 robot.ready()
-                _, (_, side, turn) = robot.go_and_dock(args.station)       # 도킹에 실패하면 Nav2 로 다시 앞에 서서 한 번 더 한다
+                _, (_, side, turn) = robot.go_and_dock(args.station, aim=args.aim, tolerance=AIM_TOLERANCE if args.aim else None)   # 실패하면 Nav2 로 다시 앞에 서서 한 번 더
             else:
-                _, side, turn = robot.dock(args.station)
+                _, side, turn = robot.dock(args.station, args.aim, AIM_TOLERANCE if args.aim else None)
             forward, left, yaw = robot.score(args.station)
             print(f"채점 (참값 - 도킹 자리): 앞뒤 {forward * 1000:+.1f} mm, 좌우 {left * 1000:+.1f} mm, 방향 {math.degrees(yaw):+.2f}°", flush=True)
             print(f"     로봇이 아는 값:      좌우 {-side * 1000:+.1f} mm, 방향 {math.degrees(-turn):+.2f}°   "
-                  f"(참값과의 차이 {(-side - left) * 1000:+.1f} mm, {math.degrees(-turn - yaw):+.2f}°)", flush=True)
+                  f"(참값과의 차이 {(-side - left) * 1000:+.1f} mm, {math.degrees(-turn - yaw):+.2f}°)"
+                  + (f"   설 자리는 좌우 {-args.aim * 1000:+.0f} mm" if args.aim else ""), flush=True)
             rows.append({"station": args.station, "before": before, "after": (forward, left, yaw), "side": side, "turn": turn})
             if args.undock:
                 robot.undock()

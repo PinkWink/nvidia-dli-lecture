@@ -6,6 +6,7 @@
     ~/isaacsim/python.sh 44_pl2m_nav/pl2m_nav.py --true-odom       # 비교용: /odom 을 바퀴로 셈하지 않고 참값으로 낸다
     ~/isaacsim/python.sh 44_pl2m_nav/pl2m_nav.py --log run.json    # 참값과 오도메트리를 0.1초마다 적어 둔다
     ~/isaacsim/python.sh 44_pl2m_nav/pl2m_nav.py --test deck       # 바닥판이 얇을 때와 두꺼울 때 음료대 앞에서 직진해 본다 (ROS 2 없이)
+    ~/isaacsim/python.sh 44_pl2m_nav/pl2m_nav.py --test deck-sweep # 바닥판의 두께 · 자리 · 바퀴의 충돌 방식을 바꿔 가며 직진해 본다 (6분쯤)
 
 주고받는 토픽
     받기   /cmd_vel   /joint_command
@@ -15,7 +16,7 @@
 강의 41 과 다른 점
     /odom      강의 41 은 시뮬레이터의 참값을 그대로 냈다. 여기서는 실제 로봇처럼 바퀴 엔코더로 셈한다 (WheelOdometry).
     라이다     앞쪽 260° 만 본다. 뒤쪽은 로봇의 몸통에 가려진다.
-    바닥판     충돌 모양을 아래로 두껍게 했다 (윗면은 그대로 2 cm). 두께 2 cm 의 얇은 상자일 때는 어떤 자리에서 바퀴가 헛돌았다.
+    바닥판     강의 38 의 부스가 바닥판을 아래로 두껍게 만든다 (윗면은 그대로 2 cm). 두께 2 cm 의 얇은 상자일 때는 어떤 자리에서 바퀴가 헛돌았다.
 """
 import argparse
 import json
@@ -31,7 +32,6 @@ LASER_LINK = "/World/pl2m/lidar_mount/laser_link"      # URDF 의 빈 링크 = �
 LIDAR = LASER_LINK + "/Lidar"
 LIDAR_FOV, LIDAR_RANGE = 260.0, (0.05, 20.0)           # 앞쪽 260° [°], 재는 거리 [m] (원본 설정의 lidar)
 SCAN_EVERY = 6                                         # 화면 6번에 한 번 = 10 Hz
-DECK_THICKNESS = 1.0                                   # 바닥판의 충돌 모양 두께 [m]. 윗면의 높이(2 cm)는 그대로 두고 아래로 늘인다
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("--compensate", choices=["both", "none"], default="both", help="중력 보상을 넣을 팔")
     parser.add_argument("--full-lidar", action="store_true", help="라이다를 360° 로 둔다 (자기 몸이 잡히는 것을 보는 비교용)")
     parser.add_argument("--thin-deck", action="store_true", help="바닥판을 원래의 얇은 상자(2 cm)로 둔다 (비교용)")
-    parser.add_argument("--test", choices=["deck"], help="deck: 얇은 바닥판과 두꺼운 바닥판에서 직진을 비교한다")
+    parser.add_argument("--test", choices=["deck", "deck-sweep"], help="deck: 얇은 바닥판과 두꺼운 바닥판에서 직진을 비교한다. deck-sweep: 두께 · 자리 · 바퀴의 충돌 방식을 바꿔 가며")
     parser.add_argument("--gui", action="store_true", help="창을 띄운다")
     parser.add_argument("--seconds", type=float, help="이 시간만큼만 돌리고 끝낸다 (없으면 Ctrl+C 나 창을 닫을 때까지)")
     parser.add_argument("--log", metavar="JSON", help="참값과 오도메트리를 0.1초마다 적어 이 파일에 저장한다")
@@ -62,28 +62,13 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, REPO)
 for folder in ("37_pl2m_import", "38_pl2m_booth", "39_pl2m_drive", "40_pl2m_gravity", "41_pl2m_ros2"):
     sys.path.insert(0, os.path.join(REPO, folder))
+import make_booth
 from booth import SPAWN
 from common.sim import Sim, new_scene, set_pose, set_view
 from import_pl2m import DEFAULT_URDF, find_urdf, import_pl2m
 from pl2m_drive import ARM_JOINTS, WHEEL_DISTANCE, WHEEL_JOINTS, WHEEL_RADIUS, set_arm_pose, set_wheel_velocity
 from pl2m_gravity import ROOT, GravityCompensation, prepare_pl2m
 from pl2m_ros2 import JointCommandInterpolator, add_cmd_vel, add_joint_command, enable_ros2
-
-
-def thicken_deck(stage, thickness=DECK_THICKNESS):
-    """바닥판(9 × 6 m 상자)을 아래로 두껍게 한다. 윗면의 높이는 그대로다.
-
-    원래는 두께 2 cm 의 얇은 상자다. 그대로 두면 어떤 자리에서 바퀴와 바닥판의 접촉이 사라져, 바퀴는 도는데 로봇이 가지 않았다 (--test deck).
-    """
-    for prim in stage.GetPrimAtPath("/World/Booth/Parts").GetChildren():
-        if prim.GetName().startswith("booth_floor"):
-            ops = {op.GetOpName(): op for op in UsdGeom.Xformable(prim).GetOrderedXformOps()}
-            center, size = ops["xformOp:translate"].Get(), ops["xformOp:scale"].Get()
-            top = center[2] + size[2] / 2.0
-            ops["xformOp:translate"].Set(Gf.Vec3d(center[0], center[1], top - thickness / 2.0))
-            ops["xformOp:scale"].Set(Gf.Vec3f(size[0], size[1], thickness))
-            return top
-    raise RuntimeError("바닥판(booth_floor)을 찾지 못함")
 
 
 def add_lidar(stage, full=False, draw=False):
@@ -204,13 +189,10 @@ class BasePose:
 
 def build_scene(app, stage, start=SPAWN, arms="transport", full_lidar=False, draw_lidar=False, thick_deck=True, ros=True):
     """부스 + 컵 + PL-2M + 라이다 + ROS 2 그래프. 뒤 강의에서도 이 함수를 불러 같은 장면을 만든다."""
-    import make_booth
     mjcf = make_booth.read_mjcf(make_booth.build_mjcf())
-    make_booth.add_booth(stage, mjcf)
+    make_booth.add_booth(stage, mjcf, floor_thickness=make_booth.FLOOR_THICKNESS if thick_deck else None)     # 강의 38: 바닥판은 아래로 두껍게
     make_booth.add_lights(stage, mjcf)
     make_booth.add_cups(stage)
-    if thick_deck:
-        thicken_deck(stage)
     robot = import_pl2m(stage, find_urdf(DEFAULT_URDF))
     set_pose(robot, translate=(start[0], start[1], 0.022), rotate_xyz=(0.0, 0.0, math.degrees(start[2])))      # 바닥판(2 cm) 위
     prepare_pl2m(stage)                                  # 팔 링크의 중력을 켜 둔다 (강의 40)
@@ -235,7 +217,7 @@ def test_deck(app):
         physics = omni.physics.tensors.create_simulation_view("numpy")
         view = physics.create_articulation_view(ROOT)
         wheels = [list(view.shared_metatype.dof_names).index(name) for name in WHEEL_JOINTS]
-        print(f"바닥판의 충돌 모양: 두께 {DECK_THICKNESS if thick else 0.02:g} m", flush=True)
+        print(f"바닥판의 충돌 모양: 두께 {make_booth.FLOOR_THICKNESS if thick else 0.02:g} m", flush=True)
         print(f"{'시간[s]':>8}{'간 거리[m]':>10}{'로봇 속도[m/s]':>13}{'바퀴 둘레 속도[m/s]':>16}", flush=True)
         begin = view.get_root_transforms()[0][:2].copy()
         for second in range(1, 7):
@@ -247,8 +229,48 @@ def test_deck(app):
         sim.stop()
 
 
+def test_deck_sweep(app):
+    """바닥판의 두께와 서는 자리를 바꿔 가며 0.1 m/s 로 6초 직진한다 (기대 0.6 m). 끝에는 바퀴의 충돌 방식을 바꿔 본다.
+
+    바퀴의 충돌 모양은 원기둥이다. PhysX 는 원기둥을 정확한 원기둥으로 다루거나(기본), 볼록 다면체로 바꿔 다룬다.
+    """
+    import carb
+    setting = "/physics/collisionApproximateCylinders"                     # True 면 원기둥을 볼록 다면체로 바꿔 충돌을 셈한다
+    spots = {"처음 자리": (5.3, -3.2, 0.0), "음료대 앞": (7.65, -2.82, math.pi / 2), "상담 테이블 2 앞": (5.06, -4.43, 0.0)}
+    cases = [(thickness, spot, False) for thickness in (0.02, 0.05, 0.10, 0.30, 1.0) for spot in spots]
+    cases += [(0.02, "음료대 앞", True), (0.05, "처음 자리", True), (0.05, "음료대 앞", True)]
+    print(f"{'두께[m]':>7}  {'자리':<12} {'바퀴의 충돌':<10} {'간 거리[m]':>9} {'바퀴가 굴러간 거리[m]':>16}", flush=True)
+    for thickness, spot, polyhedron in cases:
+        carb.settings.get_settings().set(setting, polyhedron)
+        stage = new_scene()
+        build_scene(app, stage, start=spots[spot], thick_deck=False, ros=False)
+        if thickness > 0.02:
+            make_booth.thicken_floor(stage, thickness)
+        sim = Sim(app)
+        sim.play()
+        sim.run(1.5)
+        physics = omni.physics.tensors.create_simulation_view("numpy")
+        view = physics.create_articulation_view(ROOT)
+        wheels = [list(view.shared_metatype.dof_names).index(name) for name in WHEEL_JOINTS]
+        begin, before, rolled = view.get_root_transforms()[0][:2].copy(), view.get_dof_positions()[0][wheels].copy(), 0.0
+        for _ in range(60):
+            set_wheel_velocity(stage, 0.1, 0.0)
+            sim.run(0.1)
+            now = view.get_dof_positions()[0][wheels]
+            rolled += float(np.mean((now - before + math.pi) % (2.0 * math.pi) - math.pi)) * WHEEL_RADIUS
+            before = now.copy()
+        went = float(np.linalg.norm(view.get_root_transforms()[0][:2] - begin))
+        print(f"{thickness:>7.2f}  {spot:<12} {'볼록 다면체' if polyhedron else '원기둥':<10} {went:>9.3f} {rolled:>16.3f}", flush=True)
+        sim.stop()
+    carb.settings.get_settings().set(setting, False)
+
+
 if __name__ == "__main__":
     enable_ros2(app)
+    if args.test == "deck-sweep":
+        test_deck_sweep(app)
+        app.close()
+        sys.exit(0)
     if args.test == "deck":
         test_deck(app)
         app.close()

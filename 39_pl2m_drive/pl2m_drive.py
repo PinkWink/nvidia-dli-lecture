@@ -40,6 +40,7 @@ CASTER_FRICTION, WHEEL_FRICTION = 0.002, 1.2
 ARM_KP, ARM_KV = 500.0, 35.0                        # 팔: [N·m/rad], [N·m·s/rad]
 GRIP_KP, GRIP_KV, GRIP_FORCE = 1800.0, 15.0, 30.0   # 그리퍼: [N/m], [N·s/m], [N]
 GRIP_OPEN = 0.044                                   # 손가락 하나가 벌어지는 거리 [m]
+SLAB_TOP, SLAB_THICKNESS = 0.02, 1.0                # 시험용 판: 윗면의 높이 [m] (부스 바닥판의 턱), 충돌 모양의 두께 [m] (강의 38 의 바닥판과 같게)
 PER_DEGREE = math.pi / 180.0                        # 라디안 기준 값 → 도 기준 값
 POSES = {  # 팔 자세 [rad] (원본 config/drive_poses.yaml). 왼팔 7개, 오른팔은 4번(팔꿈치)만 같고 나머지는 부호가 반대
     "down": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -60,6 +61,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", choices=["wheels", "arms", "gripper", "hold", "step"], help="한 가지를 설정별로 재 본다")
     parser.add_argument("--booth", action="store_true", help="강의 38 의 부스 안에서 움직인다")
+    parser.add_argument("--thin-slab", action="store_true", help="비교용: --test hold · step 의 판과 --booth 의 바닥판을 원본처럼 두께 2 cm 로 둔다")
+    parser.add_argument("--abrupt-start", action="store_true", help="비교용: --test hold 에서 처음의 주행 자세도 한 번에 바꾼다")
     parser.add_argument("--keyboard", action="store_true", help="창을 띄우고 W A S D 로 운전한다")
     parser.add_argument("--gui", action="store_true", help="창을 띄운다")
     parser.add_argument("--out", metavar="JSON", help="--test arms 의 시간별 오차를 이 파일에 저장한다")
@@ -225,6 +228,19 @@ def add_keyboard_drive(max_linear=MAX_LINEAR, max_angular=MAX_ANGULAR):
                        {keys.CREATE_NODES: nodes, keys.SET_VALUES: values, keys.CONNECT: connects})
 
 
+def add_slab(stage, center, size, thick=True):
+    """윗면이 2 cm 높이인 판(부스 바닥판과 같은 턱). thick 이면 강의 38 의 바닥판처럼 아래로 1 m 두께로 늘인다.
+
+    두께 2 cm 의 얇은 상자 그대로면 바퀴(원기둥)와의 접촉이 사라지는 자리가 있다 (강의 38 · 44).
+    """
+    thickness = SLAB_THICKNESS if thick else SLAB_TOP
+    slab = UsdGeom.Cube.Define(stage, "/World/Slab")
+    slab.CreateSizeAttr(1.0)
+    set_pose(slab.GetPrim(), translate=(center[0], center[1], SLAB_TOP - thickness / 2.0), scale=(size[0], size[1], thickness))
+    UsdPhysics.CollisionAPI.Apply(slab.GetPrim())
+    return slab.GetPrim()
+
+
 def fresh_robot(height=0.05):
     """새 장면에 PL-2M 을 가져온다."""
     stage = new_scene()
@@ -337,10 +353,7 @@ def test_hold():
     print(f"{'모터 게인':<8} {'팔 움직임':<8} {'직진[m]':>7} {'회전[°]':>7} {'어깨 최고 속도[°/s]':>16} {'0~1.5초에 밀림[mm]':>16} {'그 뒤 4초[mm]':>12}", flush=True)
     for gain, seconds in ((10.0, 0.0), (MOTOR_GAIN, 0.0), (10.0, 1.0), (MOTOR_GAIN, 1.0)):
         stage = fresh_robot(height=0.07)
-        slab = UsdGeom.Cube.Define(stage, "/World/Slab")
-        slab.CreateSizeAttr(1.0)
-        set_pose(slab.GetPrim(), translate=(4.5, -3.0, 0.01), scale=(9.0, 6.0, 0.02))      # 부스 바닥판과 같은 크기 · 자리
-        UsdPhysics.CollisionAPI.Apply(slab.GetPrim())
+        add_slab(stage, (4.5, -3.0), (9.0, 6.0), thick=not args.thin_slab)                  # 부스 바닥판과 같은 크기 · 자리
         set_pose(stage.GetPrimAtPath(ROBOT), translate=(5.3, -3.2, 0.07))                  # 부스에서 로봇이 출발하는 자리
         tune_pl2m(stage)
         for name in WHEEL_JOINTS:
@@ -349,7 +362,11 @@ def test_hold():
         sim = Sim(app)
         sim.play()
         sim.run(1.0)
-        move_arms(stage, sim, "transport", 1.5)
+        if args.abrupt_start:
+            set_arm_targets(stage, pose_degrees("transport"))      # 비교용: 처음의 주행 자세도 한 번에
+            sim.run(1.5)
+        else:
+            move_arms(stage, sim, "transport", 1.5)
         sim.run(0.5)
         x0, y0, _, yaw0 = pose_of(body)
         set_wheel_velocity(stage, 0.25, 0.0)
@@ -381,10 +398,7 @@ def test_hold():
 def test_step():
     """2 cm 높이의 판 위에서 출발해 턱을 내려갔다가(전진) 다시 올라온다(후진)."""
     stage = fresh_robot(height=0.07)
-    slab = UsdGeom.Cube.Define(stage, "/World/Slab")              # 부스 바닥판과 같은 두께 2 cm 의 판
-    slab.CreateSizeAttr(1.0)
-    set_pose(slab.GetPrim(), translate=(-1.0, 0.0, 0.01), scale=(3.0, 3.0, 0.02))      # x = 0.5 에서 끝난다
-    UsdPhysics.CollisionAPI.Apply(slab.GetPrim())
+    add_slab(stage, (-1.0, 0.0), (3.0, 3.0), thick=not args.thin_slab)      # 부스 바닥판과 같은 높이 2 cm 의 판. x = 0.5 에서 끝난다
     tune_pl2m(stage)
     body = stage.GetPrimAtPath(BODY)
     sim = Sim(app)
@@ -434,7 +448,7 @@ if __name__ == "__main__":
         sys.path.insert(0, os.path.join(REPO, "38_pl2m_booth"))
         import make_booth
         mjcf = make_booth.read_mjcf(make_booth.build_mjcf())
-        make_booth.add_booth(stage, mjcf)
+        make_booth.add_booth(stage, mjcf, floor_thickness=None if args.thin_slab else make_booth.FLOOR_THICKNESS)
         make_booth.add_lights(stage, mjcf)
         make_booth.add_cups(stage)
         start = (make_booth.SPAWN[0], make_booth.SPAWN[1], 0.07)

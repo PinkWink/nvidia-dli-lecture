@@ -32,6 +32,7 @@ SOURCE = os.path.expanduser("~/pinklab_robotworld2026")          # 강의 37 에
 OUT = os.path.join(REPO, "work", "booth")
 BOOTH = "/World/Booth"
 LOOKS = "/World/Looks"
+FLOOR_THICKNESS = 1.0             # 부스 바닥판의 두께 [m]. 원본은 0.02 다. 윗면의 높이(2 cm)는 그대로 두고 아래로 늘인다 (thicken_floor)
 SPAWN = (5.3, -3.2, 0.0)          # 로봇 시작 자리: 상담 테이블 둘 사이 (원본 worlds/booth.yaml 의 spawn)
 CUPS = [("cup_pink", (7.50, -1.72, 0.795), (0.87, 0.42, 0.65)),       # 음료대 위의 컵 (원본 worlds/booth.yaml 의 objects)
         ("cup_blue", (7.65, -1.72, 0.795), (0.28, 0.39, 0.68)),
@@ -265,8 +266,28 @@ def add_cameras(stage, mjcf):
     return paths
 
 
-def add_booth(stage, mjcf):
-    """booth.xml 의 내용을 /World/Booth 아래에 만든다. 옮긴 수를 돌려준다."""
+def thicken_floor(stage, thickness=FLOOR_THICKNESS):
+    """바닥판(9 × 6 m 상자)을 아래로 두껍게 한다. 윗면의 높이는 그대로다. 윗면의 높이를 돌려준다.
+
+    원본은 두께 2 cm 의 얇은 상자다. 그대로 두면 어떤 자리에서는 바퀴와 바닥판의 접촉이 사라져, 바퀴는 도는데 로봇이 가지 않았다
+    (강의 44 의 --test deck). 늘어난 부분은 전시장 바닥 아래에 있어 보이지 않는다.
+    """
+    for prim in stage.GetPrimAtPath(f"{BOOTH}/Parts").GetChildren():
+        if prim.GetName().startswith("booth_floor"):
+            ops = {op.GetOpName(): op for op in UsdGeom.Xformable(prim).GetOrderedXformOps()}
+            center, size = ops["xformOp:translate"].Get(), ops["xformOp:scale"].Get()
+            top = center[2] + size[2] / 2.0
+            ops["xformOp:translate"].Set(Gf.Vec3d(center[0], center[1], top - thickness / 2.0))
+            ops["xformOp:scale"].Set(Gf.Vec3f(size[0], size[1], thickness))
+            return top
+    raise RuntimeError("바닥판(booth_floor)을 찾지 못함")
+
+
+def add_booth(stage, mjcf, floor_thickness=FLOOR_THICKNESS):
+    """booth.xml 의 내용을 /World/Booth 아래에 만든다. 카메라의 경로들을 돌려준다.
+
+    floor_thickness: 바닥판의 두께 [m]. None 이면 원본 그대로(2 cm) 둔다.
+    """
     looks = add_materials(stage, mjcf)
     meshes = {}
     for item in mjcf.findall("asset/mesh"):
@@ -288,6 +309,8 @@ def add_booth(stage, mjcf):
         for geom in body.findall("geom"):
             prim = add_geom(stage, str(group.GetPath()), geom, looks, meshes)
             count[geom.get("type") if prim else "옮기지 않음"] += 1
+    if floor_thickness:
+        thicken_floor(stage, floor_thickness)
     cameras = add_cameras(stage, mjcf)
     for name, eye, target in ROBOT_VIEWS:                       # 로봇을 올렸을 때 쓰는 시점 두 개
         camera = UsdGeom.Camera.Define(stage, f"{BOOTH}/Cameras/{name}")
@@ -391,7 +414,7 @@ def add_lights(stage, mjcf):
 
 
 def add_cups(stage):
-    """음료대 위에 컵 세 개 (지름 5 cm, 높이 9 cm, 100 g 의 원기둥). 뒤 강의에서 집을 물체."""
+    """음료대 위에 컵 세 개 (지름 5 cm, 높이 9 cm, 200 g 의 원기둥). 뒤 강의에서 집을 물체."""
     UsdGeom.Scope.Define(stage, "/World/Cups")
     for name, center, color in CUPS:
         cup = UsdGeom.Cylinder.Define(stage, f"/World/Cups/{name}")
