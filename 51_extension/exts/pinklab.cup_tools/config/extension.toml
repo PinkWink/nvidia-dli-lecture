@@ -1,0 +1,17 @@
+# 익스텐션의 이름표. Isaac Sim 은 이 파일을 보고 무엇을 어떻게 불러올지 안다
+[package]
+version = "0.1.0"
+title = "PinkLAB Cup Tools"
+description = "음료대 위의 컵을 버튼으로 다시 놓는 창 (강의 51)"
+category = "Simulation"
+keywords = ["pinklab", "lecture"]
+
+[dependencies]
+"omni.ui" = {}                # 창과 버튼
+"omni.usd" = {}               # 열려 있는 장면
+"omni.kit.commands" = {}      # 되돌릴 수 있는 명령
+"omni.kit.menu.utils" = {}    # 위쪽 메뉴에 항목 넣기
+"omni.kit.property.usd" = {}  # Variant 를 고르는 명령 (SelectVariantPrim) 이 든 곳
+
+[[python.module]]
+name = "pinklab.cup_tools"    # 불러올 파이썬 모듈: 같은 폴더의 pinklab/cup_tools/
