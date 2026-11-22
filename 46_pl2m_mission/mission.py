@@ -57,6 +57,7 @@ from pick_cup import Picker, pose_at
 
 dock.LABELS["ARM"] = "팔 작업"
 ARM_TOLERANCE = 0.02                           # 팔이 일할 자리에는 옆으로 2 cm 안에 선다. 넘으면 옆걸음을 한다 (강의 45 의 기본은 5 cm)
+FURNITURE_MARGIN = 0.01                        # 팔이 접근 시작 자리로 가는 동안에는 가구를 사방으로 1 cm 키워 알린다 (add_guard)
                                                # 놓을 자리(옆으로 15 cm)는 10 cm 까지만 닿고, 컵은 옆으로 8 cm 부터 닿는다. 5 cm 를 남기면 그 한계에 걸린다
 BASE_STILL = (0.005, math.radians(0.5))        # 팔이 일하는 동안 베이스가 이보다 더 움직이면 (오도메트리로 5 mm · 0.5°) 도킹이 건넨 값을 못 쓴다
 
@@ -76,6 +77,11 @@ LIMITS = joint_limits()
 
 class ArmError(Exception):
     """팔 작업을 계속할 수 없는 까닭."""
+
+
+def grown(kind, size, margin):
+    """모양을 사방으로 margin [m] 만큼 키운 크기. 상자는 (x, y, z), 원기둥은 (반지름, 높이)."""
+    return tuple(v + 2.0 * margin for v in size) if kind == "box" else (size[0] + margin, size[1] + 2.0 * margin)
 
 
 def shape(name, kind, center, size, yaw=0.0):
@@ -231,6 +237,20 @@ class Mission:
         self.arm.apply(world=items + list(more))
         return [item.id for item in items]
 
+    def add_guard(self, station, where):
+        """가구를 사방으로 FURNITURE_MARGIN 만큼 키운 것을 겹쳐 넣는다. 팔이 접근 시작 자리로 가는 동안에만 둔다.
+
+        가구를 딱 맞게만 알리면 MoveIt 은 상판에 거의 닿는 길도 낸다. 시뮬레이터의 팔은 그 길에서 몇 mm 벗어나므로 상판을 스쳤다.
+        컵을 쥐고 드는 동안에는 뺀다: 컵이 상판에 놓여 있어서, 키운 상판과는 처음부터 겹친다.
+        """
+        items = []
+        for name, kind, center, size in FURNITURE[station]:
+            turned = kind == "box" and abs(math.sin(STATIONS[station]["goal"][2])) > 0.7
+            size = grown(kind, size, FURNITURE_MARGIN)
+            items.append(shape(name + "_guard", kind, to_base(station, center, *where), (size[1], size[0], size[2]) if turned else size, yaw=where[1]))
+        self.arm.apply(world=items)
+        return [item.id for item in items]
+
     def remove(self, names):
         self.arm.apply(world=[CollisionObject(id=name, operation=CollisionObject.REMOVE) for name in names])
 
@@ -256,7 +276,9 @@ class Mission:
             raise ArmError(f"집기 전 확인: 운반 자세에서 컵까지 직선으로 이어지지 않음 ({fraction * 100:.0f} %, {self.why_cut(side, way_back, self.joints(side, 'carry'))})")
         print(f"            집기 전 확인: 운반 자세 ↔ 컵 ↔ 접근 시작 자리가 직선으로 이어짐. 그 끝의 팔 모양으로 감", flush=True)
         # 2. 그 팔 모양으로 가서, 온 길을 따라 집고 돌아온다
+        guard = self.add_guard(station, where)                                         # 이 움직임 동안에는 가구를 1 cm 키워 알린다
         self.arm_to_joints(side, dict(zip(joint_names, path[-1])))
+        self.remove(guard)
         self.check_base("접근 시작 자리에서")
         self.straight(side, x, y, tip_z, "접근")
         position, _, _ = self.arm.grip(side, GRASP["close"])

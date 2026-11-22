@@ -255,7 +255,7 @@ if __name__ == "__main__":
         make_booth.add_booth(stage, mjcf)
         make_booth.add_lights(stage, mjcf)
         make_booth.add_cups(stage)
-        start = (make_booth.SPAWN[0], make_booth.SPAWN[1], 0.022)     # 부스 바닥판(2 cm) 위
+        start = (make_booth.SPAWN[0], make_booth.SPAWN[1], 0.002)
     robot = import_pl2m(stage, find_urdf(DEFAULT_URDF))
     set_pose(robot, translate=start)
     prepare_pl2m(stage)                                  # 팔 링크의 중력을 켜 둔다 (강의 40)

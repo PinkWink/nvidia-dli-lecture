@@ -1,16 +1,16 @@
-"""강의 44: Nav2 가 쓸 부스 지도를 만듭니다. 원본의 지도에 바닥판의 가장자리를 벽으로 그려 넣습니다.
+"""강의 44: Nav2 가 쓸 부스 지도를 만듭니다. 원본의 지도에 부스의 테두리를 벽으로 그려 넣습니다.
 
     python3 44_pl2m_nav/make_map.py            # work/booth/booth_map.pgm · booth_map.yaml
 
 원본의 지도: 원본이 자기 MuJoCo 장면에서 바로 만든 것 (SLAM 으로 다 만든 지도를 대신한다고 적혀 있음). 벽 · 가구 · 기둥이 들어 있고 사람은 없다.
-더하는 것: 바닥판(9 × 6 m, 높이 2 cm)의 가장자리. 라이다에는 보이지 않지만 로봇이 내려가면 못 올라오므로 (강의 39) 벽으로 막는다.
+더하는 것: 부스(9 × 6 m)의 테두리. 벽이 없는 쪽은 통로와 이어져 있다. 로봇이 통로로 나가는 길을 Nav2 가 내지 않게 벽으로 막는다.
 """
 import os
 
 import numpy as np
 from PIL import Image
 
-from booth import DECK, MAP, SOURCE_MAP
+from booth import AREA, MAP, SOURCE_MAP
 
 
 def read_yaml(path):
@@ -32,8 +32,8 @@ if __name__ == "__main__":
         """부스 좌표 (x, y) → 그림의 (줄, 칸)."""
         return height - 1 - int((y - origin[1]) / resolution), int((x - origin[0]) / resolution)
 
-    x0, y0, x1, y1 = DECK
-    top, left = cell(x0, y1 + resolution)          # 가장자리 바로 바깥 칸에 그린다: 바닥판 위는 지우지 않는다
+    x0, y0, x1, y1 = AREA
+    top, left = cell(x0, y1 + resolution)          # 테두리 바로 바깥 칸에 그린다: 부스 안은 지우지 않는다
     bottom, right = cell(x1 + resolution, y0 - resolution)
     grid[top, left:right + 1] = 0
     grid[bottom, left:right + 1] = 0
@@ -45,5 +45,5 @@ if __name__ == "__main__":
         file.write(f"image: {os.path.basename(MAP).replace('.yaml', '.pgm')}\nmode: trinary\nresolution: {resolution}\n"
                    f"origin: [{origin[0]}, {origin[1]}, 0.0]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.25\n")
     print(f"원본 지도: {width} × {height} 칸, 한 칸 {resolution * 100:g} cm, 막힌 칸 {before}개")
-    print(f"바닥판 가장자리를 그려 넣음: 막힌 칸 {int((grid == 0).sum())}개 (+{int((grid == 0).sum()) - before})")
+    print(f"부스의 테두리를 그려 넣음: 막힌 칸 {int((grid == 0).sum())}개 (+{int((grid == 0).sum()) - before})")
     print(f"저장: {MAP}")

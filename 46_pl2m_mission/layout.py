@@ -1,7 +1,7 @@
 """스테이션에 무엇이 어디 있는지: 컵 · 놓을 자리 · 팔이 피해야 할 가구와 사람. ROS 2 쪽(mission.py)이 쓴다.
 
 값은 원본 저장소의 worlds/booth.yaml (objects · scene) 과 warehouse_skills/config/skills.yaml (grasp · place · carry) 에서 가져왔다.
-좌표는 부스 좌표계(지도와 같음)다. 로봇은 도킹한 뒤 이 좌표를 자기 기준으로 바꿔 쓴다 (to_base).
+좌표는 부스 좌표계(지도와 같음)다. 로봇은 도킹한 뒤 이 좌표를 자기 기준으로 바꿔 쓴다 (to_base). 바닥이 높이 0 이라 높이는 그대로다.
 """
 import math
 import os
@@ -13,7 +13,6 @@ for folder in ("44_pl2m_nav", "45_pl2m_dock"):
 from booth import STATIONS
 from markers import docked_pose
 
-DECK_TOP = 0.02                               # 바닥판의 높이 [m]. 로봇이 이 위에 서 있으므로, 로봇 기준 높이 = 부스 좌표의 높이 - 0.02
 CUP_DIAMETER, CUP_HEIGHT, CUP_MASS = 0.05, 0.09, 0.2
 CUPS = {                                      # 음료대 위의 컵: 가운데 (x, y, z)
     "cup_pink":   (7.50, -1.72, 0.795),
@@ -21,14 +20,14 @@ CUPS = {                                      # 음료대 위의 컵: 가운데 
     "cup_yellow": (7.80, -1.72, 0.795),
 }
 # 놓는 자리: 든 팔의 정면. 축에서 옆으로 15 cm (왼팔이면 왼쪽), 가장자리에서 9 cm 안쪽. 상판 4 mm 위에서 놓는다.
-# 원본은 가운데부터 채우고(옆으로 0 · ±10 cm) 가장자리에서 5.5 cm 안쪽에 놓는다. 그 자리는 이 강의의 설정에서 팔이 닿지 않았다 (강의 46 의 5절).
+# 원본은 가운데부터 채우고(옆으로 0 · ±10 cm) 가장자리에서 5.5 cm 안쪽에 놓는다. 첫 자리(옆으로 0)는 이 강의의 설정에서 팔이 닿지 않았다 (강의 46 의 5절).
 PLACE = {"from_edge": 0.09, "lateral": 0.15, "drop_z": 0.004}
 GRASP = {"pre_offset_x": -0.10, "z_offset": 0.02, "lift_z": 0.04, "retreat_x": -0.14,
          "open": 0.044, "close": 0.012, "close_min": 0.016, "close_max": 0.028}                       # 강의 43 과 같은 값
 CARRY_TIP = (0.34, 0.153, 0.86)               # 운반 자세(carry)일 때 왼손 손끝의 자리 (로봇 기준). 오른손은 y 의 부호가 반대
 
-REACH = 0.12                                  # 팔이 컵을 집어 운반 자세까지 곧게 가려면, 컵이 로봇의 가운데에서 그 팔 쪽으로 이만큼은 떨어져 있어야 한다 [m]
-                                              # 재 본 한계는 8 cm 다 (7 cm 에서는 직선이 15 % 에서 끊겼다). 도킹 오차 2 cm 와 여유를 더했다 (강의 46 의 6절)
+REACH = 0.12                                  # 가운데 가까이 있는 컵을 집을 때, 컵이 로봇의 가운데에서 집는 팔 쪽으로 이만큼 떨어지게 비켜 선다 [m]
+                                              # 재 보면 3 cm 부터 운반 자세까지 곧게 이어진다. 그 안쪽은 1 cm 차이로 되다 안 되다 한다 (강의 46 의 6절)
 
 # 팔이 피해야 할 가구: 스테이션 → [(이름, 모양, 가운데, 크기)]. 상자의 크기는 (x, y, z), 원기둥은 (반지름, 높이), 공은 (반지름,)
 FURNITURE = {
@@ -83,14 +82,14 @@ def to_base(station, point, side=0.0, turn=0.0):
     dx, dy = point[0] - x0, point[1] - y0
     ahead = dx * math.cos(yaw) + dy * math.sin(yaw)                  # 축을 따라 앞으로
     left = -dx * math.sin(yaw) + dy * math.cos(yaw) + side           # 축에서 왼쪽으로 + 로봇이 축에서 벗어난 만큼
-    return ahead * math.cos(turn) - left * math.sin(turn), ahead * math.sin(turn) + left * math.cos(turn), point[2] - DECK_TOP
+    return ahead * math.cos(turn) - left * math.sin(turn), ahead * math.sin(turn) + left * math.cos(turn), point[2]
 
 
 def arm_and_aim(station, cup):
     """그 컵을 집을 팔과, 도킹할 때 비켜 설 거리 aim [m] (축이 로봇의 왼쪽으로 aim 만큼 떨어지게 선다. - 면 로봇이 왼쪽으로 비켜 선 것).
 
     컵이 축에서 REACH 넘게 떨어져 있으면 그쪽 팔로, 축 위에 서서 집는다.
-    가운데 가까이 있는 컵은 어느 팔로도 곧게 닿지 않는다. 가까운 사람이 없는 쪽으로 비켜 서고, 그 반대쪽 팔로 집는다.
+    가운데 가까이 있는 컵은 1 cm 차이로 닿다 말다 한다. 가까운 사람이 없는 쪽으로 비켜 서고, 그 반대쪽 팔로 집는다.
     """
     left = to_base(station, CUPS[cup])[1]                             # 축 위에 섰을 때 컵이 로봇의 왼쪽으로 떨어진 거리
     if abs(left) >= REACH:

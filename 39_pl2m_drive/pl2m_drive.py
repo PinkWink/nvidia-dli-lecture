@@ -4,13 +4,13 @@
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test arms        # 팔: 구동 값 세 가지로 자세를 바꿔 봄
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test gripper     # 그리퍼: 열고 닫기
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test hold        # 팔을 움직일 때 로봇이 제자리를 지키는지 (한 번에 · 1초에 걸쳐, 모터 게인 10 · 100)
-    ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test step        # 부스 바닥판의 2 cm 턱을 내려갔다 올라오기
+    ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --test slab        # 참고: 바닥이 얇은 상자일 때 직진해 보기
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py                    # 다 맞춘 로봇으로 직진 → 회전 → 팔 자세
     ~/isaacsim/python.sh 39_pl2m_drive/pl2m_drive.py --booth --gui --keyboard     # 부스 안에서 W A S D 로 운전
 
 값의 출처: 저장소 pinklab_robotworld2026 의 MuJoCo 설정 (src/mobile_openarm_mujoco/config/mujoco.yaml · model.py)
     바퀴 모터  velocity_gain 10 N·m·s/rad, max_torque 18 N·m          팔      kp 500 N·m/rad, kv 35 N·m·s/rad, 관절 토크로 중력 보상
-      (속도 게인만 100 으로 올려 씀: 10 은 제자리 회전이 5 % 느리고, 팔을 한 번에 움직인 뒤 로봇이 계속 밀렸음)
+      (속도 게인만 100 으로 올려 씀: 10 은 제자리 회전이 5 % 느렸음)
       (중력 보상은 옮기지 않았음: 팔 링크의 중력을 꺼서 처짐만 없앰. 팔 12 kg 의 무게가 베이스에 실리지 않는 점이 원본과 다름)
     마찰       캐스터 0.002, 바퀴 1.2                                  그리퍼  kp 1800 N/m, kv 15 N·s/m, 최대 30 N
 USD 의 회전 관절 구동 값은 "도" 기준이라, 라디안 기준 값에 π/180 을 곱해 넣습니다.
@@ -40,7 +40,7 @@ CASTER_FRICTION, WHEEL_FRICTION = 0.002, 1.2
 ARM_KP, ARM_KV = 500.0, 35.0                        # 팔: [N·m/rad], [N·m·s/rad]
 GRIP_KP, GRIP_KV, GRIP_FORCE = 1800.0, 15.0, 30.0   # 그리퍼: [N/m], [N·s/m], [N]
 GRIP_OPEN = 0.044                                   # 손가락 하나가 벌어지는 거리 [m]
-SLAB_TOP, SLAB_THICKNESS = 0.02, 1.0                # 시험용 판: 윗면의 높이 [m] (부스 바닥판의 턱), 충돌 모양의 두께 [m] (강의 38 의 바닥판과 같게)
+SLAB_TOP = 0.02                                     # --test slab 의 상자: 윗면의 높이 [m]. 두께를 바꿀 때는 아래로 늘인다
 PER_DEGREE = math.pi / 180.0                        # 라디안 기준 값 → 도 기준 값
 POSES = {  # 팔 자세 [rad] (원본 config/drive_poses.yaml). 왼팔 7개, 오른팔은 4번(팔꿈치)만 같고 나머지는 부호가 반대
     "down": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -59,10 +59,8 @@ def pose_degrees(name):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test", choices=["wheels", "arms", "gripper", "hold", "step"], help="한 가지를 설정별로 재 본다")
+    parser.add_argument("--test", choices=["wheels", "arms", "gripper", "hold", "slab"], help="한 가지를 설정별로 재 본다")
     parser.add_argument("--booth", action="store_true", help="강의 38 의 부스 안에서 움직인다")
-    parser.add_argument("--thin-slab", action="store_true", help="비교용: --test hold · step 의 판과 --booth 의 바닥판을 원본처럼 두께 2 cm 로 둔다")
-    parser.add_argument("--abrupt-start", action="store_true", help="비교용: --test hold 에서 처음의 주행 자세도 한 번에 바꾼다")
     parser.add_argument("--keyboard", action="store_true", help="창을 띄우고 W A S D 로 운전한다")
     parser.add_argument("--gui", action="store_true", help="창을 띄운다")
     parser.add_argument("--out", metavar="JSON", help="--test arms 의 시간별 오차를 이 파일에 저장한다")
@@ -228,12 +226,8 @@ def add_keyboard_drive(max_linear=MAX_LINEAR, max_angular=MAX_ANGULAR):
                        {keys.CREATE_NODES: nodes, keys.SET_VALUES: values, keys.CONNECT: connects})
 
 
-def add_slab(stage, center, size, thick=True):
-    """윗면이 2 cm 높이인 판(부스 바닥판과 같은 턱). thick 이면 강의 38 의 바닥판처럼 아래로 1 m 두께로 늘인다.
-
-    두께 2 cm 의 얇은 상자 그대로면 바퀴(원기둥)와의 접촉이 사라지는 자리가 있다 (강의 38 · 44).
-    """
-    thickness = SLAB_THICKNESS if thick else SLAB_TOP
+def add_slab(stage, center, size, thickness):
+    """윗면이 2 cm 높이인 상자를 바닥으로 깐다 (--test slab). 두께만큼 아래로 내려간다."""
     slab = UsdGeom.Cube.Define(stage, "/World/Slab")
     slab.CreateSizeAttr(1.0)
     set_pose(slab.GetPrim(), translate=(center[0], center[1], SLAB_TOP - thickness / 2.0), scale=(size[0], size[1], thickness))
@@ -346,15 +340,13 @@ def test_gripper():
 
 
 def test_hold():
-    """부스 바닥판과 같은 판 위에서 1 m 직진 → 90° 회전 → 멈추고 팔을 운반 자세로.
+    """1 m 직진 → 90° 회전 → 멈추고 팔을 운반 자세로.
 
     팔을 한 번에 움직일 때와 1초에 걸쳐 움직일 때, 모터 게인 10(원본)과 100 일 때 로봇이 밀린 거리를 잰다.
     """
     print(f"{'모터 게인':<8} {'팔 움직임':<8} {'직진[m]':>7} {'회전[°]':>7} {'어깨 최고 속도[°/s]':>16} {'0~1.5초에 밀림[mm]':>16} {'그 뒤 4초[mm]':>12}", flush=True)
     for gain, seconds in ((10.0, 0.0), (MOTOR_GAIN, 0.0), (10.0, 1.0), (MOTOR_GAIN, 1.0)):
-        stage = fresh_robot(height=0.07)
-        add_slab(stage, (4.5, -3.0), (9.0, 6.0), thick=not args.thin_slab)                  # 부스 바닥판과 같은 크기 · 자리
-        set_pose(stage.GetPrimAtPath(ROBOT), translate=(5.3, -3.2, 0.07))                  # 부스에서 로봇이 출발하는 자리
+        stage = fresh_robot()
         tune_pl2m(stage)
         for name in WHEEL_JOINTS:
             drive(stage, name).GetDampingAttr().Set(gain * PER_DEGREE)
@@ -362,11 +354,7 @@ def test_hold():
         sim = Sim(app)
         sim.play()
         sim.run(1.0)
-        if args.abrupt_start:
-            set_arm_targets(stage, pose_degrees("transport"))      # 비교용: 처음의 주행 자세도 한 번에
-            sim.run(1.5)
-        else:
-            move_arms(stage, sim, "transport", 1.5)
+        move_arms(stage, sim, "transport", 1.5)
         sim.run(0.5)
         x0, y0, _, yaw0 = pose_of(body)
         set_wheel_velocity(stage, 0.25, 0.0)
@@ -395,26 +383,33 @@ def test_hold():
         sim.stop()
 
 
-def test_step():
-    """2 cm 높이의 판 위에서 출발해 턱을 내려갔다가(전진) 다시 올라온다(후진)."""
-    stage = fresh_robot(height=0.07)
-    add_slab(stage, (-1.0, 0.0), (3.0, 3.0), thick=not args.thin_slab)      # 부스 바닥판과 같은 높이 2 cm 의 판. x = 0.5 에서 끝난다
-    tune_pl2m(stage)
-    body = stage.GetPrimAtPath(BODY)
-    sim = Sim(app)
-    sim.play()
-    sim.run(1.0)
-    print(f"{'동작':<12} {'시간[s]':>7} {'x[m]':>7} {'z[m]':>7}", flush=True)
-    for name, linear in (("전진 0.3", 0.3), ("후진 0.3", -0.3)):
-        set_wheel_velocity(stage, linear, 0.0)
-        for k in range(8):
+def test_slab():
+    """참고: 바닥이 평면일 때와 얇은 상자일 때 0.1 m/s 로 6초 직진한다 (기대 0.6 m).
+
+    상자는 9 × 6 m 이고 윗면의 높이는 2 cm 다. 두께만 바꾼다. 서는 자리 둘은 상자의 가운데 가까이와 가장자리 쪽이다.
+    """
+    spots = {"가운데 쪽": (5.3, -3.2, 0.0), "가장자리 쪽": (7.65, -2.82, 90.0)}
+    print(f"{'바닥':<14} {'선 자리':<10} {'간 거리[m]':>9}", flush=True)
+    for thickness in (None, 0.02, 0.05, 0.10, 1.0):
+        for spot, (x, y, yaw) in spots.items():
+            top = SLAB_TOP if thickness else 0.0
+            stage = fresh_robot(height=top + 0.05)
+            if thickness:
+                add_slab(stage, (4.5, -3.0), (9.0, 6.0), thickness)
+            set_pose(stage.GetPrimAtPath(ROBOT), translate=(x, y, top + 0.05), rotate_xyz=(0.0, 0.0, yaw))
+            tune_pl2m(stage)
+            body = stage.GetPrimAtPath(BODY)
+            sim = Sim(app)
+            sim.play()
+            sim.run(1.0)
+            move_arms(stage, sim, "transport", 1.5)
             sim.run(0.5)
-            x, _, z, _ = pose_of(body)
-            print(f"{name:<12} {(k + 1) * 0.5:>7.1f} {x:>7.3f} {z:>7.3f}", flush=True)
-    set_wheel_velocity(stage, 0.0, 0.0)
-    x, _, z, _ = pose_of(body)
-    print(f"결과: 끝난 자리 x = {x:.3f} m, 높이 z = {z:.3f} m (판 위에 있으면 0.107, 바닥이면 0.087)", flush=True)
-    sim.stop()
+            x0, y0, _, _ = pose_of(body)
+            set_wheel_velocity(stage, 0.1, 0.0)
+            sim.run(6.0)
+            x1, y1, _, _ = pose_of(body)
+            print(f"{'평면' if not thickness else f'상자 {thickness * 100:g} cm':<14} {spot:<10} {math.hypot(x1 - x0, y1 - y0):>9.3f}", flush=True)
+            sim.stop()
 
 
 def demo(stage, sim):
@@ -438,7 +433,7 @@ def demo(stage, sim):
 
 if __name__ == "__main__":
     if args.test:
-        {"wheels": test_wheels, "gripper": test_gripper, "hold": test_hold, "step": test_step}.get(args.test, lambda: test_arms(args.out))()
+        {"wheels": test_wheels, "gripper": test_gripper, "hold": test_hold, "slab": test_slab}.get(args.test, lambda: test_arms(args.out))()
         app.close()
         sys.exit(0)
 
@@ -448,10 +443,10 @@ if __name__ == "__main__":
         sys.path.insert(0, os.path.join(REPO, "38_pl2m_booth"))
         import make_booth
         mjcf = make_booth.read_mjcf(make_booth.build_mjcf())
-        make_booth.add_booth(stage, mjcf, floor_thickness=None if args.thin_slab else make_booth.FLOOR_THICKNESS)
+        make_booth.add_booth(stage, mjcf)
         make_booth.add_lights(stage, mjcf)
         make_booth.add_cups(stage)
-        start = (make_booth.SPAWN[0], make_booth.SPAWN[1], 0.07)
+        start = (make_booth.SPAWN[0], make_booth.SPAWN[1], 0.05)
     robot = import_pl2m(stage, find_urdf(DEFAULT_URDF))
     set_pose(robot, translate=start)
     tune_pl2m(stage)
