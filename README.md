@@ -84,6 +84,7 @@ cd ~/nvidia-dli-lecture
 | 52. 팔이 목표에 손을 뻗게 학습하기: OpenArm Reach 와 PL-2M 의 왼팔 | [52_openarm_reach/README.md](52_openarm_reach/README.md) | `pl2m_reach_env.py` Isaac Lab 의 Reach 과제에서 로봇을 PL-2M 으로 · `reach_samples.py` 팔이 닿는 범위 재기 · `train.py` · `play.py` 학습과 평가 |
 | 53. 부스의 디지털트윈: 상자를 새로 놓으면 로봇의 길이 막히나 | [53_booth_twin/README.md](53_booth_twin/README.md) | `review.py` 지금의 부스 → 검토 안 → 낙하 시험 · `twin.py` 길 · 거리 · 상자 쌓기 · `paths/` 로봇이 다닌 길 |
 | 54. 로봇의 눈에 AI 모델 붙이기: 이름으로 찾고, 말로 묻고, 사진 한 장으로 거리 재기 | [54_pl2m_models/README.md](54_pl2m_models/README.md) | `models.py` 받아 쓰는 모델 넷 · `try_models.py` 머리 카메라 영상에 돌리고 참값과 견주기 · `find_go.py` 이름으로 찾아가기 |
+| 55. MobilityGen 으로 주행 데이터 만들기: Pinky Pro 를 등록하고, 기록하고, 다시 틀어 영상 그리기 | [55_pinky_mobilitygen/README.md](55_pinky_mobilitygen/README.md) | `pinky_robot.py` MobilityGen 에 Pinky Pro 등록 · `prepare.py` 로봇 파일과 점유 지도 · `record.py` 자동 주행 기록 · `replay.py` 다시 틀며 영상 그리기 · `read_data.py` 데이터 읽기 · `open_ui.py` 창에서 키보드로 몰기 |
 
 강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키우고, 강의 8 ~ 10 은 URDF 로 가져온 Carter 를 같은 순서(가져오기 → 조종 → 센서)로 다룹니다. 강의 11 ~ 13 은 핑크랩의 [Pinky Pro](https://github.com/pinklab-art/pinky_pro) 를 공식 저장소의 URDF 로 가져와 모터 · 센서 · 화면 · LED 까지 올립니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
 
