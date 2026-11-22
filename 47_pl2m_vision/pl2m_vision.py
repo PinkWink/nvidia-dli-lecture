@@ -5,9 +5,10 @@
     ~/isaacsim/python.sh 47_pl2m_vision/pl2m_vision.py --start drinks --docked    # 음료대에 도킹한 자리에서 시작
     ~/isaacsim/python.sh 47_pl2m_vision/pl2m_vision.py --start drinks --docked --shuffle 3
                                                                                   # 컵을 음료대 위 아무 데나 놓는다 (3 = 무작위 씨앗)
+    ~/isaacsim/python.sh 47_pl2m_vision/pl2m_vision.py --shuffle 3 --front        # 팔이 닿는 앞줄에만 놓는다 (강의 48)
     ~/isaacsim/python.sh 47_pl2m_vision/pl2m_vision.py --start drinks --docked --cups cup_pink=7.60,-1.60 cup_blue=7.80,-1.70
                                                                                   # 컵의 자리를 직접 정한다 (부스 좌표 x,y)
-    ~/isaacsim/python.sh 47_pl2m_vision/pl2m_vision.py --gui                      # 창으로 보기
+    ~/isaacsim/python.sh 47_pl2m_vision/pl2m_vision.py --gui                      # 창으로 보기 (--view booth: 음료대와 상담 테이블 1 이 함께)
 
 강의 46 의 장면(부스 · PL-2M · 라이다 · 마커 · 앞 카메라 · 쥐기 설정)에 더하는 것
     머리 카메라    head_camera_link 자리 (바닥에서 1.10 m, 아래로 14.3° 숙임). 640 × 480, 세로 화각 60°, 1초에 10장
@@ -29,6 +30,7 @@ HEAD_CAMERA = HEAD_LINK + "/Camera"
 HEAD_SIZE, HEAD_FOVY, HEAD_EVERY = (640, 480), 60.0, 6           # 크기 [픽셀], 세로 화각 [°] (원본 cameras.yaml), 화면 6번에 한 장
 STAND = (7.65, -1.60, 0.62, 0.42)                                 # 음료대 상판: 가운데 (x, y), 크기 (x, y) [m]
 STAND_TOP = 0.75                                                  # 음료대 상판의 높이 [m]
+FRONT = (0.06, 0.11)                                              # 앞줄: 컵의 가운데가 음료대 앞면에서 안쪽으로 이만큼 [m]. 팔이 닿는 범위(5 ~ 12 cm)의 안쪽이다 (강의 48)
 
 if __name__ == "__main__":
     sys.path.insert(0, os.path.join(REPO, "44_pl2m_nav"))
@@ -38,8 +40,10 @@ if __name__ == "__main__":
     parser.add_argument("--docked", action="store_true", help="--start 의 스테이션에 도킹을 마친 자리에서 시작한다")
     parser.add_argument("--offset", type=float, nargs=2, metavar=("SIDE", "YAW"), default=(0.0, 0.0), help="시작 자리를 왼쪽으로 SIDE [m], 왼쪽으로 YAW [°] 튼다")
     parser.add_argument("--shuffle", type=int, metavar="SEED", help="컵 세 개를 음료대 위 아무 데나 놓는다")
+    parser.add_argument("--front", action="store_true", help="--shuffle 과 함께: 음료대의 앞줄(앞면에서 6 ~ 11 cm)에만 놓는다")
     parser.add_argument("--cups", nargs="+", metavar="NAME=X,Y", default=[], help="컵의 자리를 정한다 (부스 좌표). 예: cup_pink=7.60,-1.60")
     parser.add_argument("--gui", action="store_true", help="창을 띄운다")
+    parser.add_argument("--view", choices=["drinks", "booth"], default="drinks", help="창의 시점: drinks 음료대 가까이, booth 음료대와 상담 테이블 1 이 함께")
     parser.add_argument("--seconds", type=float, help="이 시간만큼만 돌리고 끝낸다")
     args = parser.parse_args()
 
@@ -120,12 +124,13 @@ def add_truth_publisher():
                        ("SimTime.outputs:simulationTime", "Publish.inputs:timeStamp")]})
 
 
-def shuffled_cups(seed, gap=0.09, margin=0.05):
-    """음료대 위에서 컵 세 개의 자리를 무작위로 고른다. 서로 gap, 가장자리에서 margin 넘게 떨어지게."""
+def shuffled_cups(seed, front=False, gap=0.09, margin=0.05):
+    """음료대 위에서 컵 세 개의 자리를 무작위로 고른다. 서로 gap, 가장자리에서 margin 넘게 떨어지게. front 면 앞줄에만."""
     rng, spots = random.Random(seed), []
     cx, cy, sx, sy = STAND
+    low, high = (cy - sy / 2 + FRONT[0], cy - sy / 2 + FRONT[1]) if front else (cy - sy / 2 + margin, cy + sy / 2 - margin)     # 로봇은 -y 쪽에서 다가온다
     while len(spots) < len(CUP_NAMES):
-        spot = (rng.uniform(cx - sx / 2 + margin, cx + sx / 2 - margin), rng.uniform(cy - sy / 2 + margin, cy + sy / 2 - margin))
+        spot = (rng.uniform(cx - sx / 2 + margin, cx + sx / 2 - margin), rng.uniform(low, high))
         if all(math.hypot(spot[0] - x, spot[1] - y) >= gap for x, y in spots):
             spots.append(spot)
     return dict(zip(CUP_NAMES, spots))
@@ -155,13 +160,13 @@ if __name__ == "__main__":
     else:
         start = start_pose(args.start, *args.offset)
     build_vision_scene(app, stage, start)
-    spots = shuffled_cups(args.shuffle) if args.shuffle is not None else {}
+    spots = shuffled_cups(args.shuffle, args.front) if args.shuffle is not None else {}
     for item in args.cups:
         name, value = item.split("=")
         spots[name] = tuple(float(v) for v in value.split(","))
     move_cups(stage, spots)
     if args.gui:
-        set_view(*VIEWS["drinks"])
+        set_view(*VIEWS[args.view])
     sim = Sim(app)
     sim.play()
     sim.run(1.0)
@@ -171,10 +176,18 @@ if __name__ == "__main__":
     print(f"준비됨: 시작 자리 {args.start}{' (도킹한 자리)' if args.docked else ''} ({start[0]:.3f}, {start[1]:.3f}, {math.degrees(start[2]):.1f}°), "
           f"머리 카메라 {HEAD_SIZE[0]} × {HEAD_SIZE[1]}. 끝내려면 Ctrl+C", flush=True)
     print("컵: " + ",  ".join(f"{name} ({x:.3f}, {y:.3f})" for name, (x, y, _, _) in cup_states(stage).items()), flush=True)
-    stop, clock = [], sim.time
+    stop, clock, told = [], sim.time, cup_states(stage)
     signal.signal(signal.SIGINT, lambda *_: stop.append(True))
     while app.is_running() and not stop and (not args.seconds or sim.time - clock < args.seconds):
         app.update()
+        for name, (x, y, z, tilt) in cup_states(stage).items():        # 컵이 위아래로 2 cm, 옆으로 10 cm 넘게 움직일 때마다 알린다 (강의 46 과 같다)
+            before = told[name]
+            if abs(z - before[2]) > 0.02 or math.hypot(x - before[0], y - before[1]) > 0.10:
+                told[name] = (x, y, z, tilt)
+                print(f"{sim.time:7.1f}초  {name}: ({x:.3f}, {y:.3f}), 높이 {z:.3f} m, 기울기 {tilt:.0f}°", flush=True)
+    truth = pose.truth()
+    print(f"끝날 때 로봇의 참값 ({truth[0]:.3f}, {truth[1]:.3f}, {math.degrees(truth[2]):.1f}°)", flush=True)
+    print("끝날 때 컵: " + ",  ".join(f"{name} ({x:.3f}, {y:.3f}) 높이 {z:.3f} m · 기울기 {tilt:.0f}°" for name, (x, y, z, tilt) in cup_states(stage).items()), flush=True)
     pose.stop()
     interpolator.stop()
     compensation.stop()

@@ -254,6 +254,15 @@ class Mission:
     def remove(self, names):
         self.arm.apply(world=[CollisionObject(id=name, operation=CollisionObject.REMOVE) for name in names])
 
+    # --- 컵이 어디 있나 -------------------------------------------------
+    def choose_arm(self, station, cup):
+        """그 컵을 집을 팔과, 도킹할 때 비켜 설 거리. 이 강의는 좌표표(layout.py)로 정한다. 강의 48 은 카메라로 본 자리로 정한다."""
+        return arm_and_aim(station, cup)
+
+    def cup_position(self, station, cup, where):
+        """컵의 자리 (로봇 기준의 앞, 왼쪽, 높이). 이 강의는 좌표표와 도킹이 알려 준 값(where)으로 셈한다. 강의 48 은 카메라로 구한다."""
+        return to_base(station, CUPS[cup], *where)
+
     # --- 집기 · 놓기 ----------------------------------------------------
     def pick(self, station, cup, where):
         """도킹한 자리에서 컵을 집어 운반 자세까지. where = 도킹이 알려 준 (side, turn) 으로 컵의 자리를 셈한다.
@@ -261,8 +270,8 @@ class Mission:
         팔을 움직이기 전에 끝(운반 자세)에서부터 거꾸로 확인한다: 운반 자리 → 뒤쪽 위 → 컵 위 → 컵 → 접근 시작 자리.
         이 직선들이 다 이어지면 그 끝의 팔 모양을 접근 시작 자세로 쓴다. 거기서 출발하면 집은 뒤 같은 길로 운반 자세까지 돌아올 수 있다.
         """
-        x, y, z = to_base(station, CUPS[cup], *where)
-        side, _ = arm_and_aim(station, cup)
+        x, y, z = self.cup_position(station, cup, where)
+        side, _ = self.choose_arm(station, cup)
         tip_z, lift = z + GRASP["z_offset"], z + GRASP["z_offset"] + GRASP["lift_z"]
         back = max(x + GRASP["retreat_x"], CARRY_TIP[0] + 0.03)                       # 운반 자리보다 몸 쪽으로는 가지 않는다
         carry = (CARRY_TIP[0], CARRY_TIP[1] if side == "left" else -CARRY_TIP[1], CARRY_TIP[2])
@@ -344,7 +353,7 @@ class Mission:
         for side in ("left", "right"):
             self.arm_to(side, "transport")
         # 1. 음료대로 가서 도킹, 집기
-        arm, aim = arm_and_aim(source, cup)
+        arm, aim = self.choose_arm(source, cup)
         if aim:
             print(f"            {cup} 은(는) 축 위에 서면 {'왼팔' if arm == 'left' else '오른팔'}이 곧게 닿지 않는 자리: 축이 왼쪽으로 {aim * 100:+.0f} cm 인 자리에 비켜 서서 도킹함", flush=True)
         if use_dock:
