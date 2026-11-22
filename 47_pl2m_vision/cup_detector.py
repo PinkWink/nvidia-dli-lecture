@@ -6,6 +6,7 @@
     ~/yolo_venv/bin/python 47_pl2m_vision/cup_detector.py --print             # 1초마다 찾은 컵을 출력
     ~/yolo_venv/bin/python 47_pl2m_vision/cup_detector.py --save cups.png     # 찾은 컵에 상자를 그린 영상 한 장을 저장
     ~/yolo_venv/bin/python 47_pl2m_vision/cup_detector.py --window            # 카메라 영상을 창으로 보기
+    ~/yolo_venv/bin/python 47_pl2m_vision/cup_detector.py --timing            # 한 장을 처리하는 시간을 단계별로 출력 (강의 49)
     ~/yolo_venv/bin/python 47_pl2m_vision/cup_detector.py --surface           # 비교용: 반지름만큼 더 들어가지 않고 보이는 면의 점을 낸다
 
 YOLO 가 설치된 가상환경의 파이썬(강의 28)으로 실행하고, ROS 2 는 그 터미널에서 source 해 둔다.
@@ -54,7 +55,7 @@ def matrix_from(transform):
 
 
 class CupDetector(Node):
-    def __init__(self, weights, push=CUP_RADIUS, confidence=0.5, device=None, show=False, save=None, window=False):
+    def __init__(self, weights, push=CUP_RADIUS, confidence=0.5, device=None, show=False, save=None, window=False, timing=False):
         super().__init__("cup_detector", parameter_overrides=[Parameter("use_sim_time", value=True)])
         from ultralytics import YOLO
         self.model, self.confidence, self.device = YOLO(weights, task="detect"), confidence, device
@@ -63,6 +64,7 @@ class CupDetector(Node):
         self.matrix = self.base_from_camera = None
         self.waiting = {}                                                      # 시각 → 그 시각의 색 영상 · 깊이 영상
         self.frames, self.spent, self.shown, self.found = 0, 0.0, None, []
+        self.timing, self.stages = timing, np.zeros(6)                         # 단계별로 쓴 시간의 합 [s]
         self.tf = Buffer()
         self.listener = TransformListener(self.tf, self)
         self.publisher = self.create_publisher(Detection3DArray, "/vision/detections", 10)
@@ -99,7 +101,9 @@ class CupDetector(Node):
         started = time.monotonic()
         image = np.frombuffer(msg.data, np.uint8).reshape(msg.height, msg.width, -1)[:, :, :3]
         picture = np.ascontiguousarray(image[:, :, ::-1])                      # YOLO 와 OpenCV 는 B, G, R 순서로 받는다
+        converted = time.monotonic()
         result = self.model.predict(picture, conf=self.confidence, device=self.device, verbose=False)[0]
+        predicted = time.monotonic()
         out = Detection3DArray()
         out.header.stamp, out.header.frame_id = msg.header.stamp, BASE         # 시각은 영상을 찍은 때
         self.found = []
@@ -116,6 +120,9 @@ class CupDetector(Node):
             self.found.append((item.label, float(score), box, center))
         self.publisher.publish(out)
         self.frames, self.spent = self.frames + 1, self.spent + time.monotonic() - started
+        speed = result.speed                                                   # YOLO 가 잰 것 [ms]: 전처리 · 추론 · 후처리
+        self.stages += [converted - started, speed["preprocess"] / 1000.0, speed["inference"] / 1000.0, speed["postprocess"] / 1000.0,
+                        predicted - converted, time.monotonic() - predicted]
         watched = self.picture.get_subscription_count() > 0                    # 보는 쪽이 있을 때만 그려서 낸다
         if self.window or self.save or watched:
             for label, score, box, center in self.found:
@@ -139,7 +146,11 @@ class CupDetector(Node):
             found = ",  ".join(f"{label} {score:.2f} 앞 {center[0]:.3f} · 왼쪽 {center[1]:+.3f} · 높이 {center[2]:.3f} m" if center is not None else f"{label} {score:.2f} (깊이 없음)"
                                for label, score, _, center in sorted(self.found, key=lambda item: item[0])) or "컵 없음"
             print(f"[{now:7.1f}초] 영상 {self.frames}장, 한 장에 {self.spent / self.frames * 1000:.0f} ms:  {found}", flush=True)
-            self.shown, self.frames, self.spent = now, 0, 0.0
+            if self.timing:
+                convert, before, inference, after, predict, rest = self.stages / self.frames * 1000.0
+                print(f"            영상 변환 {convert:.1f} ms · YOLO {predict:.1f} ms (전처리 {before:.1f} · 추론 {inference:.1f} · 후처리 {after:.1f} · 그 밖 {predict - before - inference - after:.1f}) · "
+                      f"자리 구하기와 내보내기 {rest:.1f} ms", flush=True)
+            self.shown, self.frames, self.spent, self.stages = now, 0, 0.0, np.zeros(6)
 
 
 def main():
@@ -149,11 +160,12 @@ def main():
     parser.add_argument("--confidence", type=float, default=0.5, help="이 점수보다 낮은 것은 버린다")
     parser.add_argument("--device", help="YOLO 를 돌릴 곳: cpu 또는 0 (GPU). 주지 않으면 GPU 가 있을 때 GPU")
     parser.add_argument("--print", action="store_true", dest="show", help="1초마다 찾은 컵을 출력")
+    parser.add_argument("--timing", action="store_true", help="한 장을 처리하는 시간을 단계별로 출력 (--print 와 함께 나온다)")
     parser.add_argument("--save", metavar="PNG", help="찾은 컵에 상자를 그린 영상 한 장을 저장")
     parser.add_argument("--window", action="store_true", help="카메라 영상을 창으로 띄운다")
     args = parser.parse_args()
     rclpy.init()
-    node = CupDetector(os.path.abspath(args.weights), 0.0 if args.surface else CUP_RADIUS, args.confidence, args.device, args.show, args.save, args.window)
+    node = CupDetector(os.path.abspath(args.weights), 0.0 if args.surface else CUP_RADIUS, args.confidence, args.device, args.show or args.timing, args.save, args.window, args.timing)
     try:
         rclpy.spin(node)
     except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException, rclpy._rclpy_pybind11.RCLError):
