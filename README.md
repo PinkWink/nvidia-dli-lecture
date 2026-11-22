@@ -79,6 +79,7 @@ cd ~/nvidia-dli-lecture
 | 47. 머리 카메라로 컵 찾기: YOLO 와 깊이 영상으로 컵의 자리 구하기 | [47_pl2m_vision/README.md](47_pl2m_vision/README.md) | `pl2m_vision.py` 머리 카메라(색 · 깊이) · `make_dataset.py` 학습 데이터 · `cup_detector.py` 컵 찾기 · `locate.py` 상자 + 깊이 → 자리 · `check_cups.py` 채점 |
 | 48. 찾은 컵 집기: 좌표표 없이 카메라로 본 자리로 집어 나르기 | [48_pl2m_find_pick/README.md](48_pl2m_find_pick/README.md) | `find_pick.py` 보고(LOOK) → 설 자리 · 팔 정하기 → 도킹 → 다시 보고 집기 · `reach_map.py` 팔이 닿는 범위 재기 |
 | 49. TensorRT 로 모델 빠르게 돌리기: 빨라진 만큼이 로봇에서도 빨라지나 | [49_tensorrt/README.md](49_tensorrt/README.md) | `export_compare.py` ONNX · TensorRT FP32 · FP16 으로 바꾸고 정확도 · 속도 견주기 (로봇에서는 강의 47 의 `cup_detector.py --timing`) |
+| 50. USD 장면을 파일 여러 개로: 참조 · payload · Variant · 레이어 | [50_usd_layers/README.md](50_usd_layers/README.md) | `make_layers.py` 컵 부품 · 배치 · 덮어쓰는 파일 · 여는 파일 만들기 · `show_layers.py` 값이 온 파일 보기, 레이어 끄기, Variant 바꾸기 |
 
 강의 4 ~ 7 은 로봇 하나(SimpleRobot)를 단계별로 키우고, 강의 8 ~ 10 은 URDF 로 가져온 Carter 를 같은 순서(가져오기 → 조종 → 센서)로 다룹니다. 강의 11 ~ 13 은 핑크랩의 [Pinky Pro](https://github.com/pinklab-art/pinky_pro) 를 공식 저장소의 URDF 로 가져와 모터 · 센서 · 화면 · LED 까지 올립니다. 뒤 강의의 스크립트는 앞 강의의 스크립트를 불러다 쓰고, 함께 쓰는 도구는 `common/sim.py` 에 있습니다.
 
